@@ -21,7 +21,7 @@ $sampahBersih = query("SELECT SUM(jumlah) as total FROM sampah WHERE jenisSampah
 // Query setoran sampah
 $setoran = query("SELECT s.tglSetor, u.namaUser, sa.jenisSampah, s.berat, sa.harga, s.total FROM setoran s JOIN users u ON s.idUser=u.idUser JOIN sampah sa ON s.idSampah=sa.idSampah ORDER BY s.tglSetor DESC LIMIT 6");
 // Query riwayat penarikan
-$penarikan = query("SELECT p.tglTarik, u.namaUser, p.jmlPenarikan, u.saldo FROM penarikan p JOIN users u ON p.idUser=u.idUser ORDER BY p.tglTarik DESC LIMIT 4");
+$penarikan = query("SELECT p.tglTarik, u.namaUser, p.jumlahTarik, u.saldo FROM penarikan p JOIN users u ON p.idUser=u.idUser ORDER BY p.tglTarik DESC LIMIT 4");
 ?>
 <!DOCTYPE html>
 <html lang="id">

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 08, 2025 at 04:55 PM
+-- Generation Time: Nov 27, 2025 at 10:29 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -93,17 +93,9 @@ INSERT INTO `berita` (`idBerita`, `judul`, `isi`, `gambar`, `sumber`) VALUES
 CREATE TABLE `penarikan` (
   `idTarik` varchar(6) NOT NULL,
   `idUser` varchar(6) NOT NULL,
-  `namaUser` varchar(30) NOT NULL,
   `tglTarik` date NOT NULL,
-  `jmlPenarikan` int(11) NOT NULL
+  `jumlahTarik` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `penarikan`
---
-
-INSERT INTO `penarikan` (`idTarik`, `idUser`, `namaUser`, `tglTarik`, `jmlPenarikan`) VALUES
-('TRK001', 'USR002', 'Ilma Dina Nur Rosidah', '2021-12-17', 10000);
 
 -- --------------------------------------------------------
 
@@ -113,23 +105,10 @@ INSERT INTO `penarikan` (`idTarik`, `idUser`, `namaUser`, `tglTarik`, `jmlPenari
 
 CREATE TABLE `penjualan` (
   `idJual` varchar(6) NOT NULL,
-  `idSampah` varchar(6) NOT NULL,
-  `berat` varchar(15) NOT NULL,
   `tglPenjualan` date NOT NULL,
-  `namaPembeli` varchar(30) NOT NULL,
-  `nomorPembeli` varchar(13) NOT NULL,
-  `harga` int(11) NOT NULL,
-  `totalPendapatan` int(11) NOT NULL,
-  `hargaPerKg` int(11) NOT NULL DEFAULT 0
+  `jumlahKg` double NOT NULL,
+  `hargaTotal` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `penjualan`
---
-
-INSERT INTO `penjualan` (`idJual`, `idSampah`, `berat`, `tglPenjualan`, `namaPembeli`, `nomorPembeli`, `harga`, `totalPendapatan`, `hargaPerKg`) VALUES
-('JUL001', 'SMP009', '80', '2021-12-17', 'juna', '089533939000', 5000, 400000, 0),
-('JUL002', 'SMP006', '5', '2021-12-17', 'zulpan', '0895339390111', 3000, 15000, 0);
 
 -- --------------------------------------------------------
 
@@ -139,11 +118,11 @@ INSERT INTO `penjualan` (`idJual`, `idSampah`, `berat`, `tglPenjualan`, `namaPem
 
 CREATE TABLE `saldo_bank` (
   `idTransaksi` varchar(6) NOT NULL,
-  `aksi` enum('Penambahan','Pengurangan','','') NOT NULL,
+  `aksi` enum('Penambahan','Pengurangan') NOT NULL,
   `tanggal` date NOT NULL,
   `aktor` varchar(6) NOT NULL,
-  `jumlah` int(11) NOT NULL,
-  `totalSaldo` int(11) NOT NULL
+  `jumlah` bigint(20) NOT NULL,
+  `totalSaldo` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -169,7 +148,7 @@ CREATE TABLE `sampah` (
   `harga` int(11) NOT NULL,
   `gambar` varchar(200) NOT NULL,
   `deskripsi` varchar(400) NOT NULL,
-  `jumlah` double NOT NULL DEFAULT 0
+  `jumlah` double DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -201,26 +180,14 @@ INSERT INTO `sampah` (`idSampah`, `jenisSampah`, `namaSampah`, `satuan`, `harga`
 --
 
 CREATE TABLE `setoran` (
-  `idSetor` varchar(6) NOT NULL,
+  `idSetor` int(11) NOT NULL,
   `idUser` varchar(6) NOT NULL,
   `idSampah` varchar(6) NOT NULL,
   `tglSetor` date NOT NULL,
-  `berat` varchar(15) NOT NULL,
-  `total` int(11) NOT NULL,
-  `tanggal` date NOT NULL DEFAULT '2025-11-06',
-  `jenisSampah` varchar(50) NOT NULL DEFAULT '',
-  `harga` int(11) NOT NULL DEFAULT 0
+  `berat` double NOT NULL,
+  `harga` int(11) NOT NULL,
+  `total` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `setoran`
---
-
-INSERT INTO `setoran` (`idSetor`, `idUser`, `idSampah`, `tglSetor`, `berat`, `total`, `tanggal`, `jenisSampah`, `harga`) VALUES
-('STR001', 'USR001', 'SMP005', '2021-10-29', '10', 2000, '2025-11-06', '', 0),
-('STR002', 'USR002', 'SMP006', '2021-10-30', '10', 15000, '2025-11-06', '', 0),
-('STR003', 'USR004', 'SMP009', '2021-10-29', '100', 10000, '2025-11-06', '', 0),
-('STR004', 'USR005', 'SMP010', '2024-07-06', '10', 500, '2025-11-06', '', 0);
 
 -- --------------------------------------------------------
 
@@ -274,9 +241,9 @@ CREATE TABLE `users` (
   `telepon` varchar(13) NOT NULL,
   `username` varchar(20) NOT NULL,
   `passwordUser` varchar(20) NOT NULL,
-  `jmlSetoran` int(11) NOT NULL,
-  `jmlPenarikan` int(11) NOT NULL,
-  `saldo` int(11) NOT NULL
+  `jmlSetoran` int(11) DEFAULT 0,
+  `jmlPenarikan` int(11) DEFAULT 0,
+  `saldo` bigint(20) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -324,8 +291,7 @@ ALTER TABLE `penarikan`
 -- Indexes for table `penjualan`
 --
 ALTER TABLE `penjualan`
-  ADD PRIMARY KEY (`idJual`),
-  ADD KEY `idSampah` (`idSampah`);
+  ADD PRIMARY KEY (`idJual`);
 
 --
 -- Indexes for table `saldo_bank`
@@ -370,6 +336,12 @@ ALTER TABLE `bank`
   MODIFY `idBank` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `setoran`
+--
+ALTER TABLE `setoran`
+  MODIFY `idSetor` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -377,20 +349,14 @@ ALTER TABLE `bank`
 -- Constraints for table `penarikan`
 --
 ALTER TABLE `penarikan`
-  ADD CONSTRAINT `idUser` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`) ON UPDATE CASCADE;
-
---
--- Constraints for table `penjualan`
---
-ALTER TABLE `penjualan`
-  ADD CONSTRAINT `penjualan_ibfk_1` FOREIGN KEY (`idSampah`) REFERENCES `sampah` (`idSampah`);
+  ADD CONSTRAINT `penarikan_ibfk_1` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `setoran`
 --
 ALTER TABLE `setoran`
-  ADD CONSTRAINT `setoran_ibfk_1` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`),
-  ADD CONSTRAINT `setoran_ibfk_2` FOREIGN KEY (`idSampah`) REFERENCES `sampah` (`idSampah`);
+  ADD CONSTRAINT `setoran_ibfk_1` FOREIGN KEY (`idUser`) REFERENCES `users` (`idUser`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `setoran_ibfk_2` FOREIGN KEY (`idSampah`) REFERENCES `sampah` (`idSampah`) ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

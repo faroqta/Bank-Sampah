@@ -1,12 +1,87 @@
+
 <?php
 // Koneksi ke database
 $host = 'localhost';
 $user = 'root';
 $pass = '';
 $db = 'sampah';
+
 $conn = mysqli_connect($host, $user, $pass, $db);
 if (!$conn) {
     die('Koneksi database gagal: ' . mysqli_connect_error());
+}
+
+// Proses form transaksi masuk (setoran) multi-item
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitTransaksi'])) {
+    if (isset($_POST['jenisTransaksi']) && $_POST['jenisTransaksi'] === 'setoran') {
+        $idUser = isset($_POST['idUser']) ? mysqli_real_escape_string($conn, $_POST['idUser']) : '';
+        $tglSetor = isset($_POST['tglSetor']) ? $_POST['tglSetor'] : date('Y-m-d');
+        $items = isset($_POST['items_json']) ? json_decode($_POST['items_json'], true) : [];
+        $errors = [];
+        if (empty($idUser)) $errors[] = 'Pilih nasabah.';
+        if (empty($items)) $errors[] = 'Item setoran kosong.';
+        if (empty($tglSetor)) $errors[] = 'Tanggal setor kosong.';
+        if (empty($errors)) {
+            foreach ($items as $item) {
+                // Cari idSampah berdasarkan namaSampah dan jenisSampah
+                $namaSampah = mysqli_real_escape_string($conn, $item['nama']);
+                $jenisSampah = mysqli_real_escape_string($conn, $item['jenis']);
+                $sqlSampah = "SELECT idSampah FROM sampah WHERE namaSampah='$namaSampah' AND jenisSampah='$jenisSampah' LIMIT 1";
+                $resultSampah = mysqli_query($conn, $sqlSampah);
+                $idSampah = '';
+                if ($resultSampah && $row = mysqli_fetch_assoc($resultSampah)) {
+                    $idSampah = $row['idSampah'];
+                }
+                if (!empty($idSampah)) {
+                    $berat = floatval($item['berat']);
+                    $harga = floatval($item['harga']);
+                    $total = $berat * $harga;
+                    $sqlInsert = "INSERT INTO setoran (idUser, idSampah, berat, harga, total, tglSetor) VALUES ('$idUser', '$idSampah', $berat, $harga, $total, '$tglSetor')";
+                    if (!mysqli_query($conn, $sqlInsert)) {
+                        echo '<div style="color:red;padding:10px;">Gagal insert: '.mysqli_error($conn).'<br>Data: '.htmlspecialchars(json_encode($item)).'</div>';
+                    }
+                } else {
+                    echo '<div style="color:red;padding:10px;">Gagal: Sampah tidak ditemukan di database (nama: '.htmlspecialchars($item['nama']).', jenis: '.htmlspecialchars($item['jenis']).')</div>';
+                }
+            }
+            // Redirect agar tidak resubmit
+            header('Location: transaksiSampah.php?success=1');
+            exit();
+        } else {
+            echo '<div style="color:red;padding:10px;">'.implode('<br>', $errors).'</div>';
+        }
+    }
+    // (Transaksi keluar/penjualan tetap seperti sebelumnya)
+}
+
+// Query semua jenis sampah untuk dropdown
+$sampahList = [];
+$sqlSampah = "SELECT idSampah, jenisSampah, namaSampah, harga FROM sampah ORDER BY jenisSampah, namaSampah ASC";
+$resultSampah = mysqli_query($conn, $sqlSampah);
+if ($resultSampah) {
+    while ($row = mysqli_fetch_assoc($resultSampah)) {
+        $sampahList[] = $row;
+    }
+    if (count($sampahList) === 0) {
+        echo '<div style="color:red;padding:10px;">Tidak ada data pada tabel sampah.</div>';
+    }
+} else {
+    echo '<div style="color:red;padding:10px;">Query sampah gagal: ' . mysqli_error($conn) . '</div>';
+}
+
+// Query semua user untuk dropdown nama nasabah
+$users = [];
+$sqlUsers = "SELECT idUser, namaUser FROM users ORDER BY namaUser ASC";
+$resultUsers = mysqli_query($conn, $sqlUsers);
+if ($resultUsers) {
+    while ($row = mysqli_fetch_assoc($resultUsers)) {
+        $users[] = $row;
+    }
+    if (count($users) === 0) {
+        echo '<div style="color:red;padding:10px;">Tidak ada data user di tabel users.</div>';
+    }
+} else {
+    echo '<div style="color:red;padding:10px;">Query users gagal: ' . mysqli_error($conn) . '</div>';
 }
 
 // Query transaksi masuk (setoran) limit 5
@@ -752,7 +827,7 @@ if ($resultPenjualanAll) {
                 </a>
             </li>
             <li class="menu-item">
-                <a href="#" class="menu-link">
+                <a href="pengguna.php" class="menu-link">
                     <i class="fas fa-users"></i>
                     <span>Pengguna</span>
                 </a>
@@ -804,15 +879,15 @@ if ($resultPenjualanAll) {
         </div>
         
         <!-- Transaksi Masuk -->
+        <!-- Transaksi Setoran Nasabah -->
         <div class="transaction-section">
             <div class="section-header">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="section-icon">
+                    <div class="section-icon bg-success text-white">
                         <i class="fas fa-arrow-down"></i>
                     </div>
-                    <h3 class="section-title">Transaksi Masuk</h3>
+                    <h3 class="section-title">Transaksi Setoran Nasabah</h3>
                 </div>
-                <a href="#" class="view-all-link" onclick="openViewAllModal('masuk')">Lihat Semua →</a>
             </div>
             <div class="table-responsive">
                 <table class="custom-table">
@@ -841,36 +916,82 @@ if ($resultPenjualanAll) {
                 </table>
             </div>
         </div>
-        <!-- Transaksi Keluar -->
+        <!-- Transaksi Penarikan Nasabah -->
         <div class="transaction-section">
             <div class="section-header">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="section-icon">
+                    <div class="section-icon bg-warning text-dark">
                         <i class="fas fa-arrow-up"></i>
                     </div>
-                    <h3 class="section-title">Transaksi Keluar</h3>
+                    <h3 class="section-title">Transaksi Penarikan Nasabah</h3>
                 </div>
-                <a href="#" class="view-all-link" onclick="openViewAllModal('keluar')">Lihat Semua →</a>
             </div>
             <div class="table-responsive">
                 <table class="custom-table">
                     <thead>
                         <tr>
                             <th>Tanggal</th>
-                            <th>Nama Pengepul</th>
-                            <th>Jumlah (Kg)</th>
-                            <th>Harga (Kg)</th>
-                            <th>Total</th>
+                            <th>Nama Nasabah</th>
+                            <th>Jumlah (Rp)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach($penjualanLimit as $row): ?>
+                        <?php 
+                        // Query penarikan nasabah (limit 5)
+                        $penarikanLimit = [];
+                        $sqlPenarikan = "SELECT p.*, u.namaUser FROM penarikan p JOIN users u ON p.idUser = u.idUser ORDER BY p.tglTarik DESC LIMIT 5";
+                        $resultPenarikan = mysqli_query($conn, $sqlPenarikan);
+                        if ($resultPenarikan) {
+                            while ($row = mysqli_fetch_assoc($resultPenarikan)) {
+                                $penarikanLimit[] = $row;
+                            }
+                        }
+                        foreach($penarikanLimit as $row): ?>
+                        <tr>
+                            <td><?= date('d/m/Y', strtotime($row['tglTarik'])) ?></td>
+                            <td><?= htmlspecialchars($row['namaUser']) ?></td>
+                            <td><?= number_format($row['jumlahTarik'],0,',','.') ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Transaksi Pengepul -->
+        <div class="transaction-section">
+            <div class="section-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="section-icon bg-primary text-white">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <h3 class="section-title">Transaksi Pengepul</h3>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Jumlah (Kg)</th>
+                            <th>Harga Total (Rp)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php 
+                        // Query transaksi pengepul (limit 5)
+                        $pengepulLimit = [];
+                        $sqlPengepul = "SELECT * FROM penjualan ORDER BY tglPenjualan DESC LIMIT 5";
+                        $resultPengepul = mysqli_query($conn, $sqlPengepul);
+                        if ($resultPengepul) {
+                            while ($row = mysqli_fetch_assoc($resultPengepul)) {
+                                $pengepulLimit[] = $row;
+                            }
+                        }
+                        foreach($pengepulLimit as $row): ?>
                         <tr>
                             <td><?= date('d/m/Y', strtotime($row['tglPenjualan'])) ?></td>
-                            <td><?= htmlspecialchars($row['namaPembeli']) ?></td>
-                            <td><?= htmlspecialchars($row['berat']) ?></td>
-                            <td><?= isset($row['harga']) ? number_format($row['harga'],0,',','.') : (isset($row['hargaPerKg']) ? number_format($row['hargaPerKg'],0,',','.') : '-') ?></td>
-                            <td><?= number_format($row['totalPendapatan'],0,',','.') ?></td>
+                            <td><?= htmlspecialchars($row['jumlahKg'] ?? $row['berat']) ?></td>
+                            <td><?= number_format($row['hargaTotal'] ?? $row['totalPendapatan'],0,',','.') ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -951,54 +1072,103 @@ if ($resultPenjualanAll) {
                     <label for="jenisTransaksi" class="form-label">Jenis Transaksi</label>
                     <select class="form-select" id="jenisTransaksi" name="jenisTransaksi" onchange="toggleFormTransaksi()" required>
                         <option value="">Pilih Jenis</option>
-                        <option value="masuk">Transaksi Masuk</option>
-                        <option value="keluar">Transaksi Keluar</option>
+                        <option value="setoran">Setoran (Nasabah)</option>
+                        <option value="penarikan">Penarikan (Nasabah)</option>
+                        <option value="pengepul">Transaksi ke Pengepul</option>
                     </select>
                 </div>
                 <div id="formTransaksiMasuk" style="display:none;">
-                    <div class="form-group mb-2">
+                    <div class="form-group mb-2" id="formNamaNasabah">
                         <label class="form-label">Nama Nasabah</label>
-                        <select name="idUser" class="form-select" required>
+                        <select name="idUser" class="form-select" id="idUserSelect" required>
                             <option value="">Pilih Nasabah</option>
                             <?php foreach($users as $u): ?>
                             <option value="<?= $u['idUser'] ?>"><?= htmlspecialchars($u['namaUser']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="form-group mb-2">
-                        <label class="form-label">Jenis Sampah</label>
-                        <select name="idSampah" class="form-select" required>
-                            <option value="">Pilih Jenis Sampah</option>
-                            <?php foreach($sampahList as $s): ?>
-                            <option value="<?= $s['idSampah'] ?>"><?= htmlspecialchars($s['jenisSampah']) ?> - <?= htmlspecialchars($s['namaSampah']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                    <div id="multiItemForm">
+                        <div class="row g-2 align-items-end" id="formSampahRow">
+                            <div class="col-md-3">
+                                <label class="form-label">Jenis Sampah</label>
+                                <select class="form-select" id="inputJenisSampah" disabled>
+                                    <option value="">Pilih Jenis</option>
+                                    <option value="Organik">Organik</option>
+                                    <option value="Anorganik">Anorganik</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Nama Sampah</label>
+                                <select class="form-select" id="inputNamaSampah" disabled>
+                                    <option value="">Pilih Nama Sampah</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Jumlah (Kg)</label>
+                                <input type="number" class="form-control" id="inputBerat" min="0" step="0.01" disabled>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Harga (Kg)</label>
+                                <input type="number" class="form-control" id="inputHarga" min="0" readonly disabled>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-success w-100" id="addItemBtn" onclick="addItem()" disabled>Tambah Item</button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group mb-2">
-                        <label class="form-label">Jumlah (Kg)</label>
-                        <input type="number" name="berat" class="form-control" min="0" step="0.01" required>
+                    <div class="mt-3">
+                        <table class="table table-bordered table-sm" id="itemTable" style="display:none;">
+                            <thead>
+                                <tr>
+                                    <th>Jenis</th>
+                                    <th>Nama Sampah</th>
+                                    <th>Jumlah (Kg)</th>
+                                    <th>Harga (Kg)</th>
+                                    <th>Subtotal</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4" class="text-end">Total</th>
+                                    <th id="totalCell">Rp0</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
-                    <div class="form-group mb-2">
-                        <label class="form-label">Harga (Kg)</label>
-                        <input type="number" name="harga" class="form-control" min="0" required>
-                    </div>
-                    <div class="form-group mb-2">
+                    <!-- Hidden input untuk data item -->
+                    <input type="hidden" name="items_json" id="items_json">
+                    <div class="form-group mb-2 mt-3">
                         <label class="form-label">Tanggal</label>
                         <input type="date" name="tglSetor" class="form-control" required>
+                    <script>
+                    // Improve UX: clicking anywhere on date input opens calendar (for browsers that need it)
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var dateInputs = document.querySelectorAll('input[type="date"]');
+                        dateInputs.forEach(function(input) {
+                            input.addEventListener('focus', function(e) {
+                                // For some browsers, this will open the picker
+                                this.showPicker && this.showPicker();
+                            });
+                            input.addEventListener('click', function(e) {
+                                this.showPicker && this.showPicker();
+                            });
+                        });
+                    });
+                    </script>
                     </div>
                 </div>
                 <div id="formTransaksiKeluar" style="display:none;">
-                    <div class="form-group mb-2">
-                        <label class="form-label">Nama Pengepul</label>
-                        <input type="text" name="namaPembeli" class="form-control" required>
-                    </div>
+                    <!-- Nama Pengepul dihilangkan sesuai permintaan -->
                     <div class="form-group mb-2">
                         <label class="form-label">Jumlah (Kg)</label>
-                        <input type="number" name="beratKeluar" class="form-control" min="0" step="0.01" required>
+                        <input type="number" name="jumlahKg" class="form-control" min="0" step="0.01" required>
                     </div>
                     <div class="form-group mb-2">
-                        <label class="form-label">Harga (Kg)</label>
-                        <input type="number" name="hargaKeluar" class="form-control" min="0" required>
+                        <label class="form-label">Harga Total (Rp)</label>
+                        <input type="number" name="hargaTotal" class="form-control" min="0" required>
                     </div>
                     <div class="form-group mb-2">
                         <label class="form-label">Tanggal</label>
@@ -1014,6 +1184,38 @@ if ($resultPenjualanAll) {
     </div>
     
     <script>
+        // Enable/disable multi-item setoran fields based on nasabah selection
+        function setMultiItemEnabled(enabled) {
+            document.getElementById('inputJenisSampah').disabled = !enabled;
+            document.getElementById('inputNamaSampah').disabled = !enabled;
+            document.getElementById('inputBerat').disabled = !enabled;
+            document.getElementById('inputHarga').disabled = !enabled;
+            document.getElementById('addItemBtn').disabled = !enabled;
+        }
+
+        // On page load, ensure disabled if no nasabah selected
+        document.addEventListener('DOMContentLoaded', function() {
+            setMultiItemEnabled(false);
+            if (document.getElementById('idUserSelect').value) {
+                setMultiItemEnabled(true);
+            }
+        });
+
+        document.getElementById('idUserSelect').addEventListener('change', function() {
+            // Reset items array and fields (already handled above)
+            setMultiItemEnabled(!!this.value);
+        });
+        // Reset multi-item setoran form when nasabah changes
+        document.getElementById('idUserSelect').addEventListener('change', function() {
+            // Reset items array
+            items = [];
+            renderItems();
+            // Reset input fields
+            document.getElementById('inputJenisSampah').value = '';
+            document.getElementById('inputNamaSampah').innerHTML = '<option value="">Pilih Nama Sampah</option>';
+            document.getElementById('inputBerat').value = '';
+            document.getElementById('inputHarga').value = '';
+        });
         function openViewAllModal(jenis) {
     document.getElementById('modalOverlay').style.display = 'block';
     document.getElementById('modalViewAll').style.display = 'block';
@@ -1041,9 +1243,103 @@ function closeAllModals() {
 
 function toggleFormTransaksi() {
     var jenis = document.getElementById('jenisTransaksi').value;
-    document.getElementById('formTransaksiMasuk').style.display = (jenis === 'masuk') ? 'block' : 'none';
-    document.getElementById('formTransaksiKeluar').style.display = (jenis === 'keluar') ? 'block' : 'none';
+    // Set default: hide all
+    document.getElementById('formTransaksiMasuk').style.display = 'none';
+    document.getElementById('formTransaksiKeluar').style.display = 'none';
+    // Show/hide fields for nasabah/pengepul
+    if (jenis === 'setoran') {
+        document.getElementById('formTransaksiMasuk').style.display = 'block';
+        document.getElementById('formNamaNasabah').style.display = '';
+        document.getElementById('formSampahRow').style.display = '';
+    } else if (jenis === 'penarikan') {
+        document.getElementById('formTransaksiKeluar').style.display = 'block';
+    } else if (jenis === 'pengepul') {
+        document.getElementById('formTransaksiKeluar').style.display = 'block';
+        // Hide nasabah and jenis sampah fields for pengepul
+        if (document.getElementById('formNamaNasabah')) document.getElementById('formNamaNasabah').style.display = 'none';
+        if (document.getElementById('formSampahRow')) document.getElementById('formSampahRow').style.display = 'none';
+    }
 }
     </script>
+</script>
+<script>
+// Data sampah dari PHP ke JS
+const sampahList = <?php echo json_encode($sampahList); ?>;
+let items = [];
+
+function updateNamaSampahDropdown() {
+    const jenis = document.getElementById('inputJenisSampah').value;
+    const namaSelect = document.getElementById('inputNamaSampah');
+    namaSelect.innerHTML = '<option value="">Pilih Nama Sampah</option>';
+    sampahList.forEach(s => {
+        if (s.jenisSampah === jenis) {
+            const opt = document.createElement('option');
+            opt.value = s.namaSampah;
+            opt.textContent = s.namaSampah;
+            opt.setAttribute('data-harga', s.harga);
+            namaSelect.appendChild(opt);
+        }
+    });
+    // Reset harga input
+    document.getElementById('inputHarga').value = '';
+}
+
+function updateHargaInput() {
+    const jenis = document.getElementById('inputJenisSampah').value;
+    const nama = document.getElementById('inputNamaSampah').value;
+    const hargaInput = document.getElementById('inputHarga');
+    // Cari harga dari sampahList
+    const found = sampahList.find(s => s.jenisSampah === jenis && s.namaSampah === nama);
+    hargaInput.value = found ? found.harga : '';
+}
+
+document.getElementById('inputJenisSampah').addEventListener('change', updateNamaSampahDropdown);
+document.getElementById('inputNamaSampah').addEventListener('change', updateHargaInput);
+
+function addItem() {
+    const jenis = document.getElementById('inputJenisSampah').value;
+    const nama = document.getElementById('inputNamaSampah').value;
+    const berat = parseFloat(document.getElementById('inputBerat').value);
+    const harga = parseFloat(document.getElementById('inputHarga').value);
+    if (!jenis || !nama || isNaN(berat) || isNaN(harga) || berat <= 0 || harga <= 0) {
+        alert('Lengkapi data item dengan benar!');
+        return;
+    }
+    items.push({ jenis, nama, berat, harga, subtotal: berat * harga });
+    renderItems();
+    // Reset input
+    document.getElementById('inputNamaSampah').innerHTML = '<option value="">Pilih Nama Sampah</option>';
+    document.getElementById('inputBerat').value = '';
+    document.getElementById('inputHarga').value = '';
+}
+
+function removeItem(idx) {
+    items.splice(idx, 1);
+    renderItems();
+}
+
+function renderItems() {
+    const table = document.getElementById('itemTable');
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = '';
+    let total = 0;
+    items.forEach((item, i) => {
+        total += item.subtotal;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item.jenis}</td>
+            <td>${item.nama}</td>
+            <td>${item.berat}</td>
+            <td>Rp${item.harga.toLocaleString()}</td>
+            <td>Rp${item.subtotal.toLocaleString()}</td>
+            <td><button type="button" class="btn btn-danger btn-sm" onclick="removeItem(${i})">Hapus</button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    document.getElementById('totalCell').textContent = 'Rp' + total.toLocaleString();
+    table.style.display = items.length ? '' : 'none';
+    document.getElementById('items_json').value = JSON.stringify(items);
+}
+</script>
 </body>
 </html>

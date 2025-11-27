@@ -703,7 +703,7 @@ if(isset($_POST['mode']) && $_POST['mode'] == 'edit'){
                 </a>
             </li>
             <li class="menu-item">
-                <a href="#" class="menu-link">
+                <a href="pengguna.php" class="menu-link">
                     <i class="fas fa-users"></i>
                     <span>Pengguna</span>
                 </a>

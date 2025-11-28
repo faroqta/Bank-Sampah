@@ -1,15 +1,6 @@
 
 <?php
-// Koneksi ke database
-$host = 'localhost';
-$user = 'root';
-$pass = '';
-$db = 'sampah';
-
-$conn = mysqli_connect($host, $user, $pass, $db);
-if (!$conn) {
-    die('Koneksi database gagal: ' . mysqli_connect_error());
-}
+require 'functions.php';
 
 // Proses form transaksi masuk (setoran) multi-item
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitTransaksi'])) {

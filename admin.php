@@ -5,12 +5,6 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// Koneksi ke database
-$conn = mysqli_connect("localhost", "root", "", "sampah"); // sesuaikan nama database jika berbeda
-if (!$conn) {
-    die("Koneksi database gagal: " . mysqli_connect_error());
-}
-
 require 'functions.php';
 // Pastikan fungsi query di functions.php menggunakan $conn
 // Query statistik utama

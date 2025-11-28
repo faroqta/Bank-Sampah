@@ -11,7 +11,7 @@ if ( !isset($_SESSION["login"]) ){
 
 $id = $_SESSION["IdAdmin"];
 $biodata = query("SELECT * FROM admins WHERE IdAdmin = '$id'")[0];
-$conn     = mysqli_connect("localhost", "root", "", "sampah");
+require 'functions.php';
 $nama       = mysqli_query($conn, "SELECT namaSampah FROM stock_sampah order by idStock asc");
 $stock = mysqli_query($conn, "SELECT stock FROM stock_sampah order by idStock asc");
 

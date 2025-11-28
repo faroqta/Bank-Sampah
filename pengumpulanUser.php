@@ -11,7 +11,7 @@ if ( !isset($_SESSION["login"]) ){
 
 $id = $_SESSION["idUser"];
 $biodata = query("SELECT * FROM users WHERE idUser = '$id'")[0];
-$conn     = mysqli_connect("localhost", "root", "", "sampah");
+require 'functions.php';
 $keseluruhan       = mysqli_query($conn, "SELECT * FROM setoran order by idSetor asc");
 $jumlahDataKeseluruhan = mysqli_num_rows($keseluruhan);
 $pengguna = mysqli_query($conn, "SELECT * FROM setoran WHERE idUser = '$id' order by idSetor asc");

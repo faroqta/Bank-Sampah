@@ -1,6 +1,18 @@
 <?php
-//koneksi ke database
-$conn = mysqli_connect("localhost", "root", "", "sampah");
+//===========================================
+// DATABASE CONFIGURATION
+//===========================================
+// HOSTING: Ganti parameter di bawah ini sesuai dengan database hosting Anda
+$host = 'localhost';     // Ganti dengan hostname hosting
+$user = 'root';          // Ganti dengan username database hosting  
+$pass = '';              // Ganti dengan password database hosting
+$db = 'sampah';          // Ganti dengan nama database hosting
+
+// Koneksi ke database
+$conn = mysqli_connect($host, $user, $pass, $db);
+if (!$conn) {
+    die('Koneksi database gagal: ' . mysqli_connect_error());
+}
 
 function query($query){
 	global $conn;

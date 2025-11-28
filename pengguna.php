@@ -62,6 +62,19 @@ if(isset($_POST['mode']) && $_POST['mode'] == 'edit'){
 $id = $_SESSION["IdAdmin"];
 $biodata = query("SELECT * FROM admins WHERE IdAdmin = '$id'")[0];
 $pengguna = query("SELECT * FROM users ORDER BY idUser ASC");
+
+// Hitung jumlah setoran dan penarikan untuk setiap user
+foreach ($pengguna as &$user) {
+    $userId = $user['idUser'];
+    // Hitung jumlah setoran
+    $setoranCount = query("SELECT COUNT(*) as total FROM setoran WHERE idUser = '$userId'")[0]['total'];
+    $user['jmlSetoran'] = $setoranCount;
+    
+    // Hitung jumlah penarikan
+    $penarikanCount = query("SELECT COUNT(*) as total FROM penarikan WHERE idUser = '$userId'")[0]['total'];
+    $user['jmlPenarikan'] = $penarikanCount;
+}
+unset($user);
 ?>
 
 <!doctype html>
@@ -962,7 +975,10 @@ $pengguna = query("SELECT * FROM users ORDER BY idUser ASC");
 
         <div class="content-card">
             <div class="card-header-custom">
-                <div></div>
+                <div class="search-box" style="width: 350px;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Cari nama, username, atau NIK..." id="searchTable">
+                </div>
                 <button class="btn-add" onclick="openModal()">
                     <i class="fas fa-plus"></i>
                     Tambah Pengguna
@@ -989,7 +1005,9 @@ $pengguna = query("SELECT * FROM users ORDER BY idUser ASC");
                             data-alamat="<?= htmlspecialchars($row['alamat']) ?>"
                             data-telepon="<?= htmlspecialchars($row['telepon']) ?>"
                             data-username="<?= htmlspecialchars($row['username']) ?>"
-                            data-saldo="<?= 'Rp. '.number_format($row['saldo'],2,',','.') ?>">
+                            data-saldo="<?= 'Rp. '.number_format($row['saldo'],2,',','.') ?>"
+                            data-jml-setoran="<?= $row['jmlSetoran'] ?>"
+                            data-jml-penarikan="<?= $row['jmlPenarikan'] ?>">
 
                             <td><?= $i; ?></td>
                             <td>
@@ -1177,6 +1195,8 @@ $pengguna = query("SELECT * FROM users ORDER BY idUser ASC");
             document.getElementById('detailPhone').textContent = row.getAttribute('data-telepon') || '-';
             document.getElementById('detailUsername').textContent = row.getAttribute('data-username') || '-';
             document.getElementById('detailSaldo').textContent = row.getAttribute('data-saldo') || '-';
+            document.getElementById('detailJmlSetoran').textContent = row.getAttribute('data-jml-setoran') || '0';
+            document.getElementById('detailJmlPenarikan').textContent = row.getAttribute('data-jml-penarikan') || '0';
             document.getElementById('detailOverlay').classList.add('active');
             document.getElementById('detailPanel').classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -1266,7 +1286,7 @@ $pengguna = query("SELECT * FROM users ORDER BY idUser ASC");
             e.stopPropagation();
         });
         
-        // Search Function
+        // Search Function for top search box
         document.getElementById('searchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();
             const tableRows = document.querySelectorAll('#dataTable tbody tr');
@@ -1275,6 +1295,43 @@ $pengguna = query("SELECT * FROM users ORDER BY idUser ASC");
                 const text = row.textContent.toLowerCase();
                 row.style.display = text.includes(searchValue) ? '' : 'none';
             });
+        });
+        
+        // Search Function for table filter
+        document.getElementById('searchTable').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const tableRows = document.querySelectorAll('#dataTable tbody tr');
+            
+            let visibleCount = 0;
+            tableRows.forEach(row => {
+                const nama = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                const username = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                const nik = row.getAttribute('data-nik').toLowerCase();
+                
+                if (nama.includes(searchValue) || username.includes(searchValue) || nik.includes(searchValue)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show "no results" message if needed
+            const tbody = document.querySelector('#dataTable tbody');
+            let noResultsRow = document.getElementById('noResultsRow');
+            
+            if (visibleCount === 0) {
+                if (!noResultsRow) {
+                    noResultsRow = document.createElement('tr');
+                    noResultsRow.id = 'noResultsRow';
+                    noResultsRow.innerHTML = '<td colspan="6" style="text-align:center; padding:30px; color:#6c757d;"><i class="fas fa-search" style="font-size:40px; margin-bottom:10px; display:block;"></i>Tidak ada data yang ditemukan</td>';
+                    tbody.appendChild(noResultsRow);
+                }
+            } else {
+                if (noResultsRow) {
+                    noResultsRow.remove();
+                }
+            }
         });
     </script>
 </body>

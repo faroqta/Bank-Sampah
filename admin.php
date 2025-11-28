@@ -16,7 +16,7 @@ require 'functions.php';
 // Query statistik utama
 $jumlahUser = query("SELECT COUNT(*) as total FROM users")[0]['total'];
 $totalSaldoNasabah = query("SELECT SUM(saldo) as total FROM users")[0]['total'];
-$totalSaldoKas = query("SELECT totalSaldo FROM saldo_bank ORDER BY tanggal DESC LIMIT 1")[0]['totalSaldo'];
+$totalSaldoKas = query("SELECT saldoBank FROM bank WHERE idBank = 1")[0]['saldoBank'];
 $sampahBersih = query("SELECT SUM(jumlah) as total FROM sampah WHERE jenisSampah='Bersih'")[0]['total'];
 // Query setoran sampah
 $setoran = query("SELECT s.tglSetor, u.namaUser, sa.jenisSampah, s.berat, sa.harga, s.total FROM setoran s JOIN users u ON s.idUser=u.idUser JOIN sampah sa ON s.idSampah=sa.idSampah ORDER BY s.tglSetor DESC LIMIT 6");
@@ -766,7 +766,7 @@ $penarikan = query("SELECT p.tglTarik, u.namaUser, p.jumlahTarik, u.saldo FROM p
                         <tr>
                                <td><?php echo $row['tglTarik']; ?></td>
                             <td><?php echo $row['namaUser']; ?></td>
-                            <td><?php echo number_format($row['jmlPenarikan'],0,',','.'); ?></td>
+                            <td><?php echo number_format($row['jumlahTarik'],0,',','.'); ?></td>
                             <td><?php echo number_format($row['saldo'],0,',','.'); ?></td>
                             <td><?php echo number_format($totalSaldoKas,0,',','.'); ?></td>
                         </tr>

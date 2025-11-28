@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitTransaksi'])) {
         if (empty($items)) $errors[] = 'Item setoran kosong.';
         if (empty($tglSetor)) $errors[] = 'Tanggal setor kosong.';
         if (empty($errors)) {
+            $totalSetoran = 0;
             foreach ($items as $item) {
                 // Cari idSampah berdasarkan namaSampah dan jenisSampah
                 $namaSampah = mysqli_real_escape_string($conn, $item['nama']);
@@ -36,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitTransaksi'])) {
                     $berat = floatval($item['berat']);
                     $harga = floatval($item['harga']);
                     $total = $berat * $harga;
+                    $totalSetoran += $total;
                     $sqlInsert = "INSERT INTO setoran (idUser, idSampah, berat, harga, total, tglSetor) VALUES ('$idUser', '$idSampah', $berat, $harga, $total, '$tglSetor')";
                     if (!mysqli_query($conn, $sqlInsert)) {
                         echo '<div style="color:red;padding:10px;">Gagal insert: '.mysqli_error($conn).'<br>Data: '.htmlspecialchars(json_encode($item)).'</div>';
@@ -44,6 +46,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitTransaksi'])) {
                     echo '<div style="color:red;padding:10px;">Gagal: Sampah tidak ditemukan di database (nama: '.htmlspecialchars($item['nama']).', jenis: '.htmlspecialchars($item['jenis']).')</div>';
                 }
             }
+            // Update saldo nasabah (tambah saldo individual nasabah)
+            if ($totalSetoran > 0) {
+                $sqlUpdateSaldo = "UPDATE users SET saldo = saldo + $totalSetoran WHERE idUser = '$idUser'";
+                mysqli_query($conn, $sqlUpdateSaldo);
+            }
             // Redirect agar tidak resubmit
             header('Location: transaksiSampah.php?success=1');
             exit();
@@ -51,7 +58,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submitTransaksi'])) {
             echo '<div style="color:red;padding:10px;">'.implode('<br>', $errors).'</div>';
         }
     }
-    // (Transaksi keluar/penjualan tetap seperti sebelumnya)
+    // Proses transaksi penarikan nasabah
+    else if (isset($_POST['jenisTransaksi']) && $_POST['jenisTransaksi'] === 'penarikan') {
+        $idUserPenarikan = isset($_POST['idUserPenarikan']) ? mysqli_real_escape_string($conn, $_POST['idUserPenarikan']) : '';
+        $jumlahTarik = isset($_POST['jumlahTarik']) ? floatval($_POST['jumlahTarik']) : 0;
+        $tglTarik = isset($_POST['tglTarik']) ? $_POST['tglTarik'] : date('Y-m-d');
+        $errors = [];
+        if (empty($idUserPenarikan)) $errors[] = 'Pilih nasabah.';
+        if ($jumlahTarik <= 0) $errors[] = 'Jumlah penarikan harus lebih dari 0.';
+        if (empty($tglTarik)) $errors[] = 'Tanggal penarikan harus diisi.';
+        
+        if (empty($errors)) {
+            // Cek saldo nasabah
+            $sqlCekSaldo = "SELECT saldo FROM users WHERE idUser = '$idUserPenarikan'";
+            $resultSaldo = mysqli_query($conn, $sqlCekSaldo);
+            if ($resultSaldo && $rowSaldo = mysqli_fetch_assoc($resultSaldo)) {
+                $saldoSekarang = floatval($rowSaldo['saldo']);
+                if ($jumlahTarik > $saldoSekarang) {
+                    echo '<div style="color:red;padding:10px;">Gagal: Jumlah penarikan (Rp'.number_format($jumlahTarik,0,',','.'). ') melebihi saldo nasabah (Rp'.number_format($saldoSekarang,0,',','.').')</div>';
+                } else {
+                    // Generate ID Penarikan (PTK001, PTK002, dst)
+                    $sqlLastId = "SELECT idTarik FROM penarikan ORDER BY idTarik DESC LIMIT 1";
+                    $resultLastId = mysqli_query($conn, $sqlLastId);
+                    $newIdTarik = 'PTK001';
+                    if ($resultLastId && mysqli_num_rows($resultLastId) > 0) {
+                        $rowLastId = mysqli_fetch_assoc($resultLastId);
+                        $lastId = $rowLastId['idTarik'];
+                        $numPart = intval(substr($lastId, 3));
+                        $newIdTarik = 'PTK' . str_pad($numPart + 1, 3, '0', STR_PAD_LEFT);
+                    }
+                    
+                    // Insert ke tabel penarikan
+                    $sqlInsertPenarikan = "INSERT INTO penarikan (idTarik, idUser, jumlahTarik, tglTarik) VALUES ('$newIdTarik', '$idUserPenarikan', $jumlahTarik, '$tglTarik')";
+                    if (mysqli_query($conn, $sqlInsertPenarikan)) {
+                        // Update saldo nasabah (kurangi saldo)
+                        $sqlUpdateSaldo = "UPDATE users SET saldo = saldo - $jumlahTarik WHERE idUser = '$idUserPenarikan'";
+                        mysqli_query($conn, $sqlUpdateSaldo);
+                        
+                        // Update saldo kas bank (kurangi saldo kas karena uang keluar)
+                        $sqlUpdateKas = "UPDATE bank SET saldoBank = saldoBank - $jumlahTarik WHERE idBank = 1";
+                        mysqli_query($conn, $sqlUpdateKas);
+                        
+                        header('Location: transaksiSampah.php?success=1');
+                        exit();
+                    } else {
+                        echo '<div style="color:red;padding:10px;">Gagal insert penarikan: '.mysqli_error($conn).'</div>';
+                    }
+                }
+            } else {
+                echo '<div style="color:red;padding:10px;">Gagal: Nasabah tidak ditemukan.</div>';
+            }
+        } else {
+            echo '<div style="color:red;padding:10px;">'.implode('<br>', $errors).'</div>';
+        }
+    }
+    // Proses transaksi pengepul (penjualan)
+    else if (isset($_POST['jenisTransaksi']) && $_POST['jenisTransaksi'] === 'pengepul') {
+        $jumlahKg = isset($_POST['jumlahKg']) ? floatval($_POST['jumlahKg']) : 0;
+        $hargaTotal = isset($_POST['hargaTotal']) ? floatval($_POST['hargaTotal']) : 0;
+        $tglPenjualan = isset($_POST['tglPenjualan']) ? $_POST['tglPenjualan'] : date('Y-m-d');
+        $errors = [];
+        if ($jumlahKg <= 0) $errors[] = 'Jumlah (Kg) harus diisi.';
+        if ($hargaTotal <= 0) $errors[] = 'Harga total harus diisi.';
+        if (empty($tglPenjualan)) $errors[] = 'Tanggal penjualan harus diisi.';
+        if (empty($errors)) {
+            // Nama pembeli/pengepul dihilangkan sesuai permintaan
+            $sqlInsert = "INSERT INTO penjualan (jumlahKg, hargaTotal, tglPenjualan) VALUES ($jumlahKg, $hargaTotal, '$tglPenjualan')";
+            if (!mysqli_query($conn, $sqlInsert)) {
+                echo '<div style="color:red;padding:10px;">Gagal insert penjualan: '.mysqli_error($conn).'</div>';
+            } else {
+                // Update saldo kas bank (tambah saldo kas dari penjualan ke pengepul)
+                $sqlUpdateKas = "UPDATE bank SET saldoBank = saldoBank + $hargaTotal WHERE idBank = 1";
+                mysqli_query($conn, $sqlUpdateKas);
+                
+                header('Location: transaksiSampah.php?success=1');
+                exit();
+            }
+        } else {
+            echo '<div style="color:red;padding:10px;">'.implode('<br>', $errors).'</div>';
+        }
+    }
 }
 
 // Query semua jenis sampah untuk dropdown
@@ -123,8 +209,17 @@ if ($resultPenjualanAll) {
         $penjualanAll[] = $row;
     }
 }
-?>
 
+// Query semua penarikan
+$penarikanAll = [];
+$sqlPenarikanAll = "SELECT p.*, u.namaUser FROM penarikan p JOIN users u ON p.idUser = u.idUser ORDER BY p.tglTarik DESC";
+$resultPenarikanAll = mysqli_query($conn, $sqlPenarikanAll);
+if ($resultPenarikanAll) {
+    while ($row = mysqli_fetch_assoc($resultPenarikanAll)) {
+        $penarikanAll[] = $row;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -133,6 +228,30 @@ if ($resultPenjualanAll) {
     <title>Transaksi Sampah - Bank Sampah</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        // Define openViewAllModal function early to avoid ReferenceError
+        function openViewAllModal(jenis) {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('modalViewAll').style.display = 'block';
+            
+            // Hide all tables first
+            document.getElementById('viewAllSetoran').style.display = 'none';
+            document.getElementById('viewAllPenarikan').style.display = 'none';
+            document.getElementById('viewAllPengepul').style.display = 'none';
+            
+            // Show appropriate table and update title
+            if(jenis === 'setoran') {
+                document.getElementById('viewAllSetoran').style.display = 'block';
+                document.getElementById('viewAllTitle').textContent = 'Semua Transaksi Setoran Nasabah';
+            } else if(jenis === 'penarikan') {
+                document.getElementById('viewAllPenarikan').style.display = 'block';
+                document.getElementById('viewAllTitle').textContent = 'Semua Transaksi Penarikan Nasabah';
+            } else if(jenis === 'pengepul') {
+                document.getElementById('viewAllPengepul').style.display = 'block';
+                document.getElementById('viewAllTitle').textContent = 'Semua Transaksi Pengepul';
+            }
+        }
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         
@@ -369,6 +488,22 @@ if ($resultPenjualanAll) {
             border-bottom: 1px solid #e9ecef;
         }
         
+        .view-all-link {
+            color: #0d6efd;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .view-all-link:hover {
+            color: #0a58ca;
+            transform: translateX(5px);
+        }
+        
         .section-title {
             font-size: 18px;
             font-weight: 700;
@@ -511,11 +646,31 @@ if ($resultPenjualanAll) {
             padding: 30px;
             width: 95%;
             max-width: 1200px;
-            max-height: 90vh;
+            max-height: 85vh;
             overflow-y: auto;
+            overflow-x: hidden;
             z-index: 9999;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             animation: slideIn 0.25s ease-out;
+        }
+        
+        /* Custom scrollbar untuk modal */
+        .modal-full::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .modal-full::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .modal-full::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .modal-full::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
         
         .modal-full.active {
@@ -888,6 +1043,7 @@ if ($resultPenjualanAll) {
                     </div>
                     <h3 class="section-title">Transaksi Setoran Nasabah</h3>
                 </div>
+                <a href="#" class="view-all-link" id="btnViewAllSetoran" onclick="event.preventDefault(); openViewAllModal('setoran');">Lihat Semua →</a>
             </div>
             <div class="table-responsive">
                 <table class="custom-table">
@@ -901,7 +1057,7 @@ if ($resultPenjualanAll) {
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tbodySetoran">
                         <?php foreach($setoranLimit as $row): ?>
                         <tr>
                             <td><?= date('d/m/Y', strtotime($row['tglSetor'])) ?></td>
@@ -925,6 +1081,7 @@ if ($resultPenjualanAll) {
                     </div>
                     <h3 class="section-title">Transaksi Penarikan Nasabah</h3>
                 </div>
+                <a href="#" class="view-all-link" id="btnViewAllPenarikan" onclick="event.preventDefault(); openViewAllModal('penarikan');">Lihat Semua →</a>
             </div>
             <div class="table-responsive">
                 <table class="custom-table">
@@ -935,7 +1092,7 @@ if ($resultPenjualanAll) {
                             <th>Jumlah (Rp)</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tbodyPenarikan">
                         <?php 
                         // Query penarikan nasabah (limit 5)
                         $penarikanLimit = [];
@@ -966,6 +1123,7 @@ if ($resultPenjualanAll) {
                     </div>
                     <h3 class="section-title">Transaksi Pengepul</h3>
                 </div>
+                <a href="#" class="view-all-link" id="btnViewAllPengepul" onclick="event.preventDefault(); openViewAllModal('pengepul');">Lihat Semua →</a>
             </div>
             <div class="table-responsive">
                 <table class="custom-table">
@@ -976,7 +1134,7 @@ if ($resultPenjualanAll) {
                             <th>Harga Total (Rp)</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tbodyPengepul">
                         <?php 
                         // Query transaksi pengepul (limit 5)
                         $pengepulLimit = [];
@@ -990,25 +1148,46 @@ if ($resultPenjualanAll) {
                         foreach($pengepulLimit as $row): ?>
                         <tr>
                             <td><?= date('d/m/Y', strtotime($row['tglPenjualan'])) ?></td>
-                            <td><?= htmlspecialchars($row['jumlahKg'] ?? $row['berat']) ?></td>
-                            <td><?= number_format($row['hargaTotal'] ?? $row['totalPendapatan'],0,',','.') ?></td>
+                            <td>
+                                <?php
+                                // Tampilkan jumlahKg jika ada, jika tidak pakai berat
+                                if (isset($row['jumlahKg']) && $row['jumlahKg'] !== null && $row['jumlahKg'] !== '') {
+                                    echo htmlspecialchars($row['jumlahKg']);
+                                } elseif (isset($row['berat'])) {
+                                    echo htmlspecialchars($row['berat']);
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
+                            <td>
+                                <?php
+                                // Tampilkan hargaTotal
+                                if (isset($row['hargaTotal']) && $row['hargaTotal'] !== null && $row['hargaTotal'] !== '') {
+                                    echo number_format($row['hargaTotal'],0,',','.');
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         </div>
-        <!-- Modal Overlay -->
-        <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
+        
         <!-- Modal View All (Lihat Semua) -->
         <div class="modal-full" id="modalViewAll" style="display:none;">
             <button class="modal-close" onclick="closeAllModals()">
                 <i class="fas fa-times"></i>
             </button>
             <div class="modal-header-custom">
-                <h2 class="modal-title-custom" id="viewAllTitle">Transaksi <span id="jenisTransaksiTitle">Masuk</span></h2>
+                <h2 class="modal-title-custom" id="viewAllTitle">Semua Transaksi</h2>
             </div>
-            <div class="table-responsive" id="viewAllMasuk" style="display:none;">
+            
+            <!-- Setoran -->
+            <div class="table-responsive" id="viewAllSetoran" style="display:none;">
                 <table class="custom-table">
                     <thead>
                         <tr>
@@ -1034,31 +1213,76 @@ if ($resultPenjualanAll) {
                     </tbody>
                 </table>
             </div>
-            <div class="table-responsive" id="viewAllKeluar" style="display:none;">
+            
+            <!-- Penarikan -->
+            <div class="table-responsive" id="viewAllPenarikan" style="display:none;">
                 <table class="custom-table">
                     <thead>
                         <tr>
                             <th>Tanggal</th>
-                            <th>Nama Pengepul</th>
+                            <th>Nama Nasabah</th>
+                            <th>Jumlah (Rp)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($penarikanAll as $row): ?>
+                        <tr>
+                            <td><?= date('d/m/Y', strtotime($row['tglTarik'])) ?></td>
+                            <td><?= htmlspecialchars($row['namaUser']) ?></td>
+                            <td><?= number_format($row['jumlahTarik'],0,',','.') ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pengepul -->
+            <div class="table-responsive" id="viewAllPengepul" style="display:none;">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
                             <th>Jumlah (Kg)</th>
-                            <th>Harga (Kg)</th>
-                            <th>Total</th>
+                            <th>Harga Total (Rp)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach($penjualanAll as $row): ?>
                         <tr>
                             <td><?= date('d/m/Y', strtotime($row['tglPenjualan'])) ?></td>
-                            <td><?= htmlspecialchars($row['namaPembeli']) ?></td>
-                            <td><?= htmlspecialchars($row['berat']) ?></td>
-                            <td><?= number_format($row['harga'],0,',','.') ?></td>
-                            <td><?= number_format($row['totalPendapatan'],0,',','.') ?></td>
+                            <td>
+                                <?php
+                                if (isset($row['jumlahKg']) && $row['jumlahKg'] !== null && $row['jumlahKg'] !== '') {
+                                    echo htmlspecialchars($row['jumlahKg']);
+                                } elseif (isset($row['berat'])) {
+                                    echo htmlspecialchars($row['berat']);
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
+                            <td>
+                                <?php
+                                if (isset($row['hargaTotal']) && $row['hargaTotal'] !== null && $row['hargaTotal'] !== '') {
+                                    echo number_format($row['hargaTotal'],0,',','.');
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
         </div>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Modal Overlay -->
+        <div class="modal-overlay" id="modalOverlay" onclick="closeAllModals()"></div>
+
         <!-- Modal Tambah Transaksi -->
         <div class="modal-form" id="modalAddTransaction" style="display:none;">
             <button class="modal-close" onclick="closeAllModals()">
@@ -1142,37 +1366,50 @@ if ($resultPenjualanAll) {
                     <input type="hidden" name="items_json" id="items_json">
                     <div class="form-group mb-2 mt-3">
                         <label class="form-label">Tanggal</label>
-                        <input type="date" name="tglSetor" class="form-control" required>
-                    <script>
-                    // Improve UX: clicking anywhere on date input opens calendar (for browsers that need it)
-                    document.addEventListener('DOMContentLoaded', function() {
-                        var dateInputs = document.querySelectorAll('input[type="date"]');
-                        dateInputs.forEach(function(input) {
-                            input.addEventListener('focus', function(e) {
-                                // For some browsers, this will open the picker
-                                this.showPicker && this.showPicker();
-                            });
-                            input.addEventListener('click', function(e) {
-                                this.showPicker && this.showPicker();
-                            });
-                        });
-                    });
-                    </script>
+                        <input type="date" name="tglSetor" class="form-control" value="<?= date('Y-m-d') ?>" required>
+                    <!-- script showPicker dihapus karena error user gesture -->
+                    
                     </div>
                 </div>
                 <div id="formTransaksiKeluar" style="display:none;">
-                    <!-- Nama Pengepul dihilangkan sesuai permintaan -->
-                    <div class="form-group mb-2">
-                        <label class="form-label">Jumlah (Kg)</label>
-                        <input type="number" name="jumlahKg" class="form-control" min="0" step="0.01" required>
+                    <!-- Penarikan Nasabah -->
+                    <div id="formPenarikanNasabah" style="display:none;">
+                        <div class="form-group mb-2">
+                            <label class="form-label">Nama Nasabah</label>
+                            <select name="idUserPenarikan" class="form-select" id="idUserPenarikan">
+                                <option value="">Pilih Nasabah</option>
+                                <?php foreach($users as $u): ?>
+                                <option value="<?= $u['idUser'] ?>"><?= htmlspecialchars($u['namaUser']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label">Saldo Saat Ini</label>
+                            <input type="text" id="saldoPenarikan" class="form-control" value="" readonly>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label">Jumlah Penarikan (Rp)</label>
+                            <input type="number" name="jumlahTarik" class="form-control" min="0" id="inputJumlahTarik">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label">Tanggal Penarikan</label>
+                            <input type="date" name="tglTarik" class="form-control" id="inputTglTarik" value="<?= date('Y-m-d') ?>">
+                        </div>
                     </div>
-                    <div class="form-group mb-2">
-                        <label class="form-label">Harga Total (Rp)</label>
-                        <input type="number" name="hargaTotal" class="form-control" min="0" required>
-                    </div>
-                    <div class="form-group mb-2">
-                        <label class="form-label">Tanggal</label>
-                        <input type="date" name="tglPenjualan" class="form-control" required>
+                    <!-- Form pengepul (default, tetap ada) -->
+                    <div id="formPengepul" style="display:none;">
+                        <div class="form-group mb-2">
+                            <label class="form-label">Jumlah (Kg)</label>
+                            <input type="number" name="jumlahKg" class="form-control" min="0" step="0.01">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label">Harga Total (Rp)</label>
+                            <input type="number" name="hargaTotal" class="form-control" min="0">
+                        </div>
+                        <div class="form-group mb-2">
+                            <label class="form-label">Tanggal</label>
+                            <input type="date" name="tglPenjualan" class="form-control" value="<?= date('Y-m-d') ?>">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-actions">
@@ -1216,20 +1453,7 @@ if ($resultPenjualanAll) {
             document.getElementById('inputBerat').value = '';
             document.getElementById('inputHarga').value = '';
         });
-        function openViewAllModal(jenis) {
-    document.getElementById('modalOverlay').style.display = 'block';
-    document.getElementById('modalViewAll').style.display = 'block';
-    if(jenis === 'masuk') {
-        document.getElementById('viewAllMasuk').style.display = 'block';
-        document.getElementById('viewAllKeluar').style.display = 'none';
-        document.getElementById('jenisTransaksiTitle').innerText = 'Masuk';
-    } else {
-        document.getElementById('viewAllMasuk').style.display = 'none';
-        document.getElementById('viewAllKeluar').style.display = 'block';
-        document.getElementById('jenisTransaksiTitle').innerText = 'Keluar';
-    }
-}
-
+        
 function openAddTransactionModal() {
     document.getElementById('modalOverlay').style.display = 'block';
     document.getElementById('modalAddTransaction').style.display = 'block';
@@ -1246,23 +1470,61 @@ function toggleFormTransaksi() {
     // Set default: hide all
     document.getElementById('formTransaksiMasuk').style.display = 'none';
     document.getElementById('formTransaksiKeluar').style.display = 'none';
-    // Show/hide fields for nasabah/pengepul
+    // Hide all sub-forms
+    document.getElementById('formPenarikanNasabah').style.display = 'none';
+    document.getElementById('formPengepul').style.display = 'none';
+    // Hide/disable setoran fields by default
+    document.getElementById('idUserSelect').disabled = true;
+    document.getElementById('idUserSelect').style.display = 'none';
+    document.querySelector('input[name="tglSetor"]').disabled = true;
+    document.querySelector('input[name="tglSetor"]').style.display = 'none';
     if (jenis === 'setoran') {
         document.getElementById('formTransaksiMasuk').style.display = 'block';
         document.getElementById('formNamaNasabah').style.display = '';
         document.getElementById('formSampahRow').style.display = '';
+        document.getElementById('idUserSelect').disabled = false;
+        document.getElementById('idUserSelect').style.display = '';
+        document.querySelector('input[name="tglSetor"]').disabled = false;
+        document.querySelector('input[name="tglSetor"]').style.display = '';
     } else if (jenis === 'penarikan') {
         document.getElementById('formTransaksiKeluar').style.display = 'block';
+        document.getElementById('formPenarikanNasabah').style.display = 'block';
     } else if (jenis === 'pengepul') {
         document.getElementById('formTransaksiKeluar').style.display = 'block';
-        // Hide nasabah and jenis sampah fields for pengepul
-        if (document.getElementById('formNamaNasabah')) document.getElementById('formNamaNasabah').style.display = 'none';
-        if (document.getElementById('formSampahRow')) document.getElementById('formSampahRow').style.display = 'none';
+        document.getElementById('formPengepul').style.display = 'block';
     }
 }
-    </script>
-</script>
-<script>
+
+// Update saldo nasabah di form penarikan saat nasabah dipilih
+document.addEventListener('DOMContentLoaded', function() {
+    var idUserPenarikan = document.getElementById('idUserPenarikan');
+    if (idUserPenarikan) {
+        idUserPenarikan.addEventListener('change', function() {
+            var idUser = this.value;
+            var saldoInput = document.getElementById('saldoPenarikan');
+            if (!idUser) {
+                saldoInput.value = '';
+                return;
+            }
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'get_user_data.php?idUser=' + encodeURIComponent(idUser), true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        saldoInput.value = data.saldo !== undefined ? 'Rp' + parseInt(data.saldo).toLocaleString() : '';
+                    } catch (e) {
+                        saldoInput.value = '';
+                    }
+                } else {
+                    saldoInput.value = '';
+                }
+            };
+            xhr.send();
+        });
+    }
+});
+
 // Data sampah dari PHP ke JS
 const sampahList = <?php echo json_encode($sampahList); ?>;
 let items = [];

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 27, 2025 at 10:29 AM
+-- Generation Time: Nov 28, 2025 at 08:31 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -58,7 +58,7 @@ CREATE TABLE `bank` (
 --
 
 INSERT INTO `bank` (`idBank`, `saldoBank`) VALUES
-(1, 0);
+(1, 138500);
 
 -- --------------------------------------------------------
 
@@ -97,6 +97,16 @@ CREATE TABLE `penarikan` (
   `jumlahTarik` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `penarikan`
+--
+
+INSERT INTO `penarikan` (`idTarik`, `idUser`, `tglTarik`, `jumlahTarik`) VALUES
+('', 'USR001', '2025-11-27', 900),
+('PTK001', 'USR001', '2025-11-27', 5000),
+('PTK002', 'USR001', '2025-11-27', 5000),
+('PTK003', 'USR001', '2025-11-27', 26500);
+
 -- --------------------------------------------------------
 
 --
@@ -104,11 +114,22 @@ CREATE TABLE `penarikan` (
 --
 
 CREATE TABLE `penjualan` (
-  `idJual` varchar(6) NOT NULL,
+  `idJual` int(11) NOT NULL,
   `tglPenjualan` date NOT NULL,
   `jumlahKg` double NOT NULL,
   `hargaTotal` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `penjualan`
+--
+
+INSERT INTO `penjualan` (`idJual`, `tglPenjualan`, `jumlahKg`, `hargaTotal`) VALUES
+(1, '2025-11-29', 12000, 120000),
+(2, '2025-11-29', 1222, 300000),
+(3, '2025-11-29', 12, 170000),
+(4, '2025-11-27', 1000, 50000),
+(5, '2025-11-27', 100, 120000);
 
 -- --------------------------------------------------------
 
@@ -189,6 +210,18 @@ CREATE TABLE `setoran` (
   `total` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `setoran`
+--
+
+INSERT INTO `setoran` (`idSetor`, `idUser`, `idSampah`, `tglSetor`, `berat`, `harga`, `total`) VALUES
+(1, 'USR001', 'SMP014', '2025-11-19', 3, 7000, 21000),
+(2, 'USR001', 'SMP013', '2025-11-26', 0.7, 45000, 31500),
+(3, 'USR002', 'SMP009', '2025-11-07', 34, 100, 3400),
+(4, 'USR001', 'SMP009', '2025-11-28', 100, 100, 10000),
+(5, 'USR001', 'SMP009', '2025-11-29', 1000, 100, 100000),
+(6, 'USR003', 'SMP013', '2025-11-27', 12, 45000, 540000);
+
 -- --------------------------------------------------------
 
 --
@@ -251,9 +284,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`idUser`, `namaUser`, `gambar`, `nik`, `alamat`, `telepon`, `username`, `passwordUser`, `jmlSetoran`, `jmlPenarikan`, `saldo`) VALUES
-('USR001', 'Ahmad Burhan', '668920c0299c0.png', '111222333444555', 'Sleman, Yogyakarta', '081222333444', 'burhan', 'burhan', 1, 0, 11900),
+('USR001', 'Ahmad Burhan', '668920c0299c0.png', '111222333444555', 'Sleman, Yogyakarta', '081222333444', 'burhan', 'burhan', 1, 0, 84500),
 ('USR002', 'Diana Putri', '668920feab910.png', '1112221113334444', 'Sleman, Yogyakarta', '082111222333', 'diana', 'diana', 1, 1, 5000),
-('USR003', 'Yohan Riki', '6689212cc1c72.png', '111222111222444', 'Bantul, Yogyakarta', '083222111222', 'yohan', 'yohan', 0, 0, 0),
+('USR003', 'Yohan Riki', '6689212cc1c72.png', '111222111222444', 'Bantul, Yogyakarta', '083222111222', 'yohan', 'yohan', 0, 0, 540000),
 ('USR004', 'Dedi Gunawan', '668921605ceb2.png', '111222333444666', 'Sleman, Yogyakarta', '081222333555', 'dedi', 'dedi', 1, 0, 10000),
 ('USR005', 'Audia Avika', '6689219a5ad6e.png', '111222111333111', 'Sleman, Yogyakarta', '081222333888', 'audia', 'audia', 1, 0, 500),
 ('USR006', 'Andhi Gunawan', '668921ef8ab9d.png', '111222333444999', 'Bantul, Yogyakarta', '082333111222', 'andhi', 'andhi', 0, 0, 0);
@@ -336,10 +369,16 @@ ALTER TABLE `bank`
   MODIFY `idBank` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `penjualan`
+--
+ALTER TABLE `penjualan`
+  MODIFY `idJual` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT for table `setoran`
 --
 ALTER TABLE `setoran`
-  MODIFY `idSetor` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `idSetor` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Constraints for dumped tables

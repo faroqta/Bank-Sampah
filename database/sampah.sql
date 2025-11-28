@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 28, 2025 at 08:31 AM
+-- Generation Time: Nov 28, 2025 at 09:21 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -58,7 +58,7 @@ CREATE TABLE `bank` (
 --
 
 INSERT INTO `bank` (`idBank`, `saldoBank`) VALUES
-(1, 138500);
+(1, 128500);
 
 -- --------------------------------------------------------
 
@@ -105,7 +105,8 @@ INSERT INTO `penarikan` (`idTarik`, `idUser`, `tglTarik`, `jumlahTarik`) VALUES
 ('', 'USR001', '2025-11-27', 900),
 ('PTK001', 'USR001', '2025-11-27', 5000),
 ('PTK002', 'USR001', '2025-11-27', 5000),
-('PTK003', 'USR001', '2025-11-27', 26500);
+('PTK003', 'USR001', '2025-11-27', 26500),
+('PTK004', 'USR001', '2025-11-28', 10000);
 
 -- --------------------------------------------------------
 
@@ -284,7 +285,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`idUser`, `namaUser`, `gambar`, `nik`, `alamat`, `telepon`, `username`, `passwordUser`, `jmlSetoran`, `jmlPenarikan`, `saldo`) VALUES
-('USR001', 'Ahmad Burhan', '668920c0299c0.png', '111222333444555', 'Sleman, Yogyakarta', '081222333444', 'burhan', 'burhan', 1, 0, 84500),
+('USR001', 'Ahmad Burhan', '668920c0299c0.png', '111222333444555', 'Sleman, Yogyakarta', '081222333444', 'burhan', 'burhan', 1, 0, 74500),
 ('USR002', 'Diana Putri', '668920feab910.png', '1112221113334444', 'Sleman, Yogyakarta', '082111222333', 'diana', 'diana', 1, 1, 5000),
 ('USR003', 'Yohan Riki', '6689212cc1c72.png', '111222111222444', 'Bantul, Yogyakarta', '083222111222', 'yohan', 'yohan', 0, 0, 540000),
 ('USR004', 'Dedi Gunawan', '668921605ceb2.png', '111222333444666', 'Sleman, Yogyakarta', '081222333555', 'dedi', 'dedi', 1, 0, 10000),

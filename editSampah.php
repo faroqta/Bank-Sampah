@@ -95,7 +95,7 @@ if (isset($_POST["submit"]) ){
                             <i class="glyphicon glyphicon-book"></i><span>Data<i class="fas fa-chevron-down drop-down"></i></span>
                         </a>
                         <div class="sub-menu">
-                            <a href="pengguna.php" target="isi"><i class=""></i><span>Data Pengguna</span></a>
+                            <a href="pengguna.php" target="isi"><i class=""></i><span>Data Nasabah</span></a>
                         </div>
                         <div class="sub-menu">
                             <a href="sampahAdmin.php" target="isi"><i class=""></i><span>Data Sampah</span></a>
@@ -139,8 +139,11 @@ if (isset($_POST["submit"]) ){
             <div class="form-group mt-2">
                 <label for="jenisSampah" >Jenis Sampah :</label>
                 <select name="jenisSampah" id="jenisSampah" required="required" class="btn btn-info dropdown-toggle"  style="width: 100%;" value="<?php echo $sampah["jenisSampah"]; ?>">
-                    <option class="dropdown-item">Organik</option>
-                    <option class="dropdown-item">Anorganik</option>
+                    <option class="dropdown-item">Kertas</option>
+                    <option class="dropdown-item">Plastik</option>
+                    <option class="dropdown-item">Logam</option>
+                    <option class="dropdown-item">Jelantah</option>
+                    <option class="dropdown-item">Sampah Lainnya</option>
                 </select>
             </div>
             <div class="form-group mt-2">

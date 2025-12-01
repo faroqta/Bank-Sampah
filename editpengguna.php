@@ -36,7 +36,7 @@ if (isset($_POST["submit"]) ){
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Edit Pengguna</title>
+    <title>Edit Nasabah</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -87,7 +87,7 @@ if (isset($_POST["submit"]) ){
                             <i class="glyphicon glyphicon-book"></i><span>Data<i class="fas fa-chevron-down drop-down"></i></span>
                         </a>
                         <div class="sub-menu">
-                            <a href="pengguna.php" target="isi"><i class=""></i><span>Data Pengguna</span></a>
+                            <a href="pengguna.php" target="isi"><i class=""></i><span>Data Nasabah</span></a>
                         </div>
                         <div class="sub-menu">
                             <a href="sampahAdmin.php" target="isi"><i class=""></i><span>Data Sampah</span></a>
@@ -123,7 +123,7 @@ if (isset($_POST["submit"]) ){
             <!--sidebar end-->
         </div>
         <div class="box-1">
-            <h2 class="text-center" style="font-size: 30px; color: #262626;">Edit Data Pengguna</h2>
+            <h2 class="text-center" style="font-size: 30px; color: #262626;">Edit Data Nasabah</h2>
             <div class="card">
             <div class="card-body">
             <form action="" method="post" class="mt-3" enctype="multipart/form-data">

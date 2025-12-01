@@ -99,7 +99,7 @@ $jumlahDataPengguna = mysqli_num_rows($pengguna);
         </div>
 
     <div class="box-1 text-center">
-        <h2 style="font-size: 30px; color: #262626;">Perbandingan Jumlah Setoran Users</h2>
+        <h2 style="font-size: 30px; color: #262626;">Perbandingan Jumlah Setoran Nasabah</h2>
         <div class="container">
             <canvas id="myChart" width="100" height="50%"></canvas>
         </div>
@@ -109,7 +109,7 @@ $jumlahDataPengguna = mysqli_num_rows($pengguna);
             var myChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ["Pengguna", "Keseluruhan"],
+                    labels: ["Nasabah", "Keseluruhan"],
                     datasets: [{
                             label: 'Jumlah Pengumpulan',
                             data: ["<?php echo $jumlahDataPengguna?>", "<?php echo $jumlahDataKeseluruhan?>"],

@@ -70,7 +70,7 @@ $stock = query("SELECT * FROM stock_sampah ORDER BY idStock ASC");
                             <i class="glyphicon glyphicon-book"></i><span>Data<i class="fas fa-chevron-down drop-down"></i></span>
                         </a>
                         <div class="sub-menu">
-                            <a href="pengguna.php" target="isi"><i class=""></i><span>Data Pengguna</span></a>
+                            <a href="pengguna.php" target="isi"><i class=""></i><span>Data Nasabah</span></a>
                         </div>
                         <div class="sub-menu">
                             <a href="sampahAdmin.php" target="isi"><i class=""></i><span>Data Sampah</span></a>

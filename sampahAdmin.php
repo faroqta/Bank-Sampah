@@ -705,7 +705,7 @@ if(isset($_POST['mode']) && $_POST['mode'] == 'edit'){
             <li class="menu-item">
                 <a href="pengguna.php" class="menu-link">
                     <i class="fas fa-users"></i>
-                    <span>Pengguna</span>
+                    <span>Nasabah</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -818,8 +818,11 @@ foreach($sampah as $row):
                 <label class="form-label">Jenis Sampah</label>
                 <select class="form-select" id="jenisSampah" name="jenisSampah" required>
                     <option value="">Pilih Jenis Sampah</option>
-                    <option value="Organik">Organik</option>
-                    <option value="Anorganik">Anorganik</option>
+                    <option value="Kertas">Kertas</option>
+                    <option value="Plastik">Plastik</option>
+                    <option value="Logam">Logam</option>
+                    <option value="Jelantah">Jelantah</option>
+                    <option value="Lainnya">Sampah Lainnya</option>
                 </select>
             </div>
             
@@ -984,7 +987,7 @@ foreach($sampah as $row):
             
             // Simulasi load data
             if (id === 1) {
-                document.getElementById('jenisSampah').value = 'Anorganik';
+                document.getElementById('jenisSampah').value = 'Plastik';
                 document.getElementById('namaSampah').value = 'Plastik';
                 document.getElementById('hargaSatuan').value = '600';
                 document.getElementById('keterangan').value = 'Semua jenis plastik';

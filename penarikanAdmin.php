@@ -69,7 +69,7 @@ $penarikan = query("SELECT * FROM penarikan ORDER BY idTarik ASC");
                             <i class="glyphicon glyphicon-book"></i><span>Data<i class="fas fa-chevron-down drop-down"></i></span>
                         </a>
                         <div class="sub-menu">
-                            <a href="pengguna.php" target="isi"><i class=""></i><span>Data Pengguna</span></a>
+                            <a href="pengguna.php" target="isi"><i class=""></i><span>Data Nasabah</span></a>
                         </div>
                         <div class="sub-menu">
                             <a href="sampahAdmin.php" target="isi"><i class=""></i><span>Data Sampah</span></a>
@@ -105,7 +105,7 @@ $penarikan = query("SELECT * FROM penarikan ORDER BY idTarik ASC");
             <!--sidebar end-->
         </div>
     <div class="box-1 text-center">
-        <h2 style="font-size: 30px; color: #262626;">Daftar Penarikan Pengguna</h2>
+        <h2 style="font-size: 30px; color: #262626;">Daftar Penarikan Nasabah</h2>
           <div class="card-body">
         
           <table id="example" class="display" cellspacing="0" width="100%" border="0" >

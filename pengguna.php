@@ -22,11 +22,10 @@ if(isset($_POST['mode']) && $_POST['mode'] == 'tambah'){
     $nik = isset($_POST['nik']) ? mysqli_real_escape_string($conn, $_POST['nik']) : '';
     $alamat = isset($_POST['alamat']) ? mysqli_real_escape_string($conn, $_POST['alamat']) : '';
     $telepon = isset($_POST['telepon']) ? mysqli_real_escape_string($conn, $_POST['telepon']) : '';
-    $username = isset($_POST['username']) ? mysqli_real_escape_string($conn, $_POST['username']) : '';
-    $password = isset($_POST['passwordUser']) ? mysqli_real_escape_string($conn, $_POST['passwordUser']) : '';
+    
     $gambar = '';
-    $query = "INSERT INTO users (idUser, namaUser, gambar, nik, alamat, telepon, username, passwordUser, jmlSetoran, jmlPenarikan, saldo) 
-              VALUES ('$id', '$nama', '$gambar', '$nik', '$alamat', '$telepon', '$username', '$password', 0, 0, 0)";
+    $query = "INSERT INTO users (idUser, namaUser, gambar, nik, alamat, telepon, jmlSetoran, jmlPenarikan, saldo) 
+              VALUES ('$id', '$nama', '$gambar', '$nik', '$alamat', '$telepon', 0, 0, 0)";
     $result = mysqli_query($conn, $query);
     if(!$result) {
         echo '<div style="color:red;padding:10px;">Gagal menambah data: '.mysqli_error($conn).'</div>';
@@ -42,8 +41,6 @@ if(isset($_POST['mode']) && $_POST['mode'] == 'edit'){
     $nik = mysqli_real_escape_string($conn, $_POST['nik']);
     $alamat = mysqli_real_escape_string($conn, $_POST['alamat']);
     $telepon = mysqli_real_escape_string($conn, $_POST['telepon']);
-    $username = mysqli_real_escape_string($conn, $_POST['username']);
-    $password = mysqli_real_escape_string($conn, $_POST['passwordUser']);
     
     $gambar_sql = "";
     if(isset($_FILES['fileInput']) && $_FILES['fileInput']['error'] == 0){
@@ -52,8 +49,7 @@ if(isset($_POST['mode']) && $_POST['mode'] == 'edit'){
         $gambar_sql = ", gambar='$gambar'";
     }
     
-    $query = "UPDATE users SET namaUser='$nama', nik='$nik', alamat='$alamat', telepon='$telepon', 
-              username='$username', passwordUser='$password' $gambar_sql WHERE idUser='$id'";
+    $query = "UPDATE users SET namaUser='$nama', nik='$nik', alamat='$alamat', telepon='$telepon' $gambar_sql WHERE idUser='$id'";
     mysqli_query($conn, $query);
     
     echo "<script>window.location='pengguna.php';</script>";
@@ -80,7 +76,7 @@ unset($user);
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Data Pengguna</title>
+    <title>Data Nasabah</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -936,7 +932,7 @@ unset($user);
             <li class="menu-item">
                 <a href="pengguna.php" class="menu-link active">
                     <i class="fas fa-users"></i>
-                    <span>Pengguna</span>
+                    <span>Nasabah</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -956,11 +952,11 @@ unset($user);
 
     <div class="main-content">
         <div class="top-bar">
-            <h1 class="page-title">Daftar Pengguna</h1>
+            <h1 class="page-title">Daftar Nasabah</h1>
             <div class="d-flex align-items-center gap-3">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Cari pengguna..." id="searchInput">
+                    <input type="text" placeholder="Cari nasabah..." id="searchInput">
                 </div>
                 <div class="user-profile">
                     <div class="user-avatar">A</div>
@@ -977,11 +973,11 @@ unset($user);
             <div class="card-header-custom">
                 <div class="search-box" style="width: 350px;">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Cari nama, username, atau NIK..." id="searchTable">
+                    <input type="text" placeholder="Cari nama atau NIK..." id="searchTable">
                 </div>
                 <button class="btn-add" onclick="openModal()">
                     <i class="fas fa-plus"></i>
-                    Tambah Pengguna
+                    Tambah Nasabah
                 </button>
             </div>
             <div class="table-responsive">
@@ -991,7 +987,6 @@ unset($user);
                             <th>No.</th>
                             <th>Foto</th>
                             <th>Nama</th>
-                            <th>Username</th>
                             <th>Saldo</th>
                             <th>Aksi</th>
                         </tr>
@@ -1004,7 +999,6 @@ unset($user);
                             data-nik="<?= htmlspecialchars($row['nik']) ?>"
                             data-alamat="<?= htmlspecialchars($row['alamat']) ?>"
                             data-telepon="<?= htmlspecialchars($row['telepon']) ?>"
-                            data-username="<?= htmlspecialchars($row['username']) ?>"
                             data-saldo="<?= 'Rp. '.number_format($row['saldo'],2,',','.') ?>"
                             data-jml-setoran="<?= $row['jmlSetoran'] ?>"
                             data-jml-penarikan="<?= $row['jmlPenarikan'] ?>">
@@ -1014,7 +1008,7 @@ unset($user);
                                 <img src="img/user/<?= htmlspecialchars($row['gambar']) ?>" alt="foto" style="width:40px;height:40px;object-fit:cover;border-radius:50%;border:1.5px solid #e9ecef;" onerror="this.onerror=null;this.src='https://via.placeholder.com/40?text=User'">
                             </td>
                             <td style="text-align:left;"><span style="font-weight:600; color:#222;"><?= htmlspecialchars($row['namaUser']) ?></span></td>
-                            <td><?= htmlspecialchars($row['username']) ?></td>
+                                <!-- <td><?= htmlspecialchars($row['username']) ?></td> -->
                             <td><?= 'Rp. '.number_format($row['saldo'],2,',','.') ?></td>
                             <td>
                                 <div class="action-buttons">
@@ -1038,10 +1032,10 @@ unset($user);
     <!-- Modal Overlay -->
     <div class="modal-overlay" id="modalOverlay" onclick="closeModal()"></div>
     
-    <!-- Modal Tambah/Edit Pengguna -->
+    <!-- Modal Tambah/Edit Nasabah -->
     <div class="modal-container" id="modalContainer">
         <div class="modal-header">
-            <h2 class="modal-title" id="modalTitle">Tambah Pengguna</h2>
+            <h2 class="modal-title" id="modalTitle">Tambah Nasabah</h2>
         </div>
         
         <form id="penggunaForm" method="POST">
@@ -1054,7 +1048,7 @@ unset($user);
             
             <div class="form-group">
                 <label class="form-label">NIK</label>
-                <input type="text" class="form-control" id="nik" name="nik" placeholder="Masukkan NIK" required>
+                <input type="text" class="form-control" id="nik" name="nik" placeholder="Masukkan NIK">
             </div>
             
             <div class="form-group">
@@ -1064,18 +1058,10 @@ unset($user);
             
             <div class="form-group">
                 <label class="form-label">Nomor Telepon</label>
-                <input type="text" class="form-control" id="telepon" name="telepon" placeholder="Contoh: 081234567890" required>
+                <input type="text" class="form-control" id="telepon" name="telepon" placeholder="Contoh: 081234567890">
             </div>
             
-            <div class="form-group">
-                <label class="form-label">Username</label>
-                <input type="text" class="form-control" id="username" name="username" placeholder="Masukkan username" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Password</label>
-                <input type="password" class="form-control" id="passwordUser" name="passwordUser" placeholder="Masukkan password" required>
-            </div>
+            <!-- Username & Password fields removed per request -->
             
             <div class="modal-actions">
                 <button type="button" class="btn-cancel" onclick="closeModal()">Batal</button>
@@ -1090,7 +1076,7 @@ unset($user);
     <!-- Detail Panel -->
     <div class="detail-panel" id="detailPanel">
         <div class="detail-header">
-            <h2 class="detail-title">Detail Pengguna</h2>
+            <h2 class="detail-title">Detail Nasabah</h2>
             <button class="btn-close-detail" onclick="closeDetailPanel()">
                 <i class="fas fa-times"></i>
             </button>
@@ -1130,15 +1116,12 @@ unset($user);
                     <div class="info-value" id="detailPhone">-</div>
                 </div>
                 
-                <div class="info-item">
-                    <label class="info-label">Username</label>
-                    <div class="info-value" id="detailUsername">-</div>
-                </div>
+                <!-- Username removed from detail view -->
             </div>
             
             <!-- History Section -->
             <div class="history-section">
-                <h3 class="info-section-title">Riwayat Pengguna</h3>
+                <h3 class="info-section-title">Riwayat Nasabah</h3>
                 
                 <div class="history-cards">
                     <div class="history-card">
@@ -1193,7 +1176,6 @@ unset($user);
             document.getElementById('detailNIK').textContent = row.getAttribute('data-nik') || '-';
             document.getElementById('detailAddress').textContent = row.getAttribute('data-alamat') || '-';
             document.getElementById('detailPhone').textContent = row.getAttribute('data-telepon') || '-';
-            document.getElementById('detailUsername').textContent = row.getAttribute('data-username') || '-';
             document.getElementById('detailSaldo').textContent = row.getAttribute('data-saldo') || '-';
             document.getElementById('detailJmlSetoran').textContent = row.getAttribute('data-jml-setoran') || '0';
             document.getElementById('detailJmlPenarikan').textContent = row.getAttribute('data-jml-penarikan') || '0';
@@ -1207,7 +1189,7 @@ unset($user);
         
         // Open Modal Function
         function openModal() {
-            document.getElementById('modalTitle').textContent = 'Tambah Pengguna';
+            document.getElementById('modalTitle').textContent = 'Tambah Nasabah';
             document.getElementById('penggunaForm').reset();
             document.getElementById('formMode').value = 'tambah';
             // Hapus input idUser jika ada
@@ -1218,7 +1200,7 @@ unset($user);
         }
 
         function openEditModal(id) {
-            document.getElementById('modalTitle').textContent = 'Edit Pengguna';
+            document.getElementById('modalTitle').textContent = 'Edit Nasabah';
             document.getElementById('formMode').value = 'edit';
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('modalContainer').classList.add('active');
@@ -1234,8 +1216,6 @@ unset($user);
                     document.getElementById('nik').value = data.nik || '';
                     document.getElementById('alamat').value = data.alamat || '';
                     document.getElementById('telepon').value = data.telepon || '';
-                    document.getElementById('username').value = data.username || '';
-                    document.getElementById('passwordUser').value = data.passwordUser || '';
                 })
                 .catch(error => {
                     console.error('Error:', error);
@@ -1261,7 +1241,7 @@ unset($user);
         
         // Delete User Function
         function deleteUser(id) {
-            if (confirm('Anda yakin ingin menghapus pengguna ini?')) {
+            if (confirm('Anda yakin ingin menghapus nasabah ini?')) {
                 window.location.href = 'hapus.php?action=delete&id=' + id;
             }
         }
@@ -1305,10 +1285,9 @@ unset($user);
             let visibleCount = 0;
             tableRows.forEach(row => {
                 const nama = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                const username = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
-                const nik = row.getAttribute('data-nik').toLowerCase();
-                
-                if (nama.includes(searchValue) || username.includes(searchValue) || nik.includes(searchValue)) {
+                const nik = (row.getAttribute('data-nik') || '').toLowerCase();
+
+                if (nama.includes(searchValue) || nik.includes(searchValue)) {
                     row.style.display = '';
                     visibleCount++;
                 } else {
@@ -1324,7 +1303,7 @@ unset($user);
                 if (!noResultsRow) {
                     noResultsRow = document.createElement('tr');
                     noResultsRow.id = 'noResultsRow';
-                    noResultsRow.innerHTML = '<td colspan="6" style="text-align:center; padding:30px; color:#6c757d;"><i class="fas fa-search" style="font-size:40px; margin-bottom:10px; display:block;"></i>Tidak ada data yang ditemukan</td>';
+                    noResultsRow.innerHTML = '<td colspan="5" style="text-align:center; padding:30px; color:#6c757d;"><i class="fas fa-search" style="font-size:40px; margin-bottom:10px; display:block;"></i>Tidak ada data yang ditemukan</td>';
                     tbody.appendChild(noResultsRow);
                 }
             } else {

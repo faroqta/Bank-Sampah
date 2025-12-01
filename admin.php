@@ -531,7 +531,7 @@ $penarikan = query("SELECT p.tglTarik, u.namaUser, p.jumlahTarik, u.saldo FROM p
             <li class="menu-item">
                 <a href="pengguna.php" class="menu-link">
                     <i class="fas fa-users"></i>
-                    <span>Pengguna</span>
+                    <span>Nasabah</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -608,7 +608,7 @@ $penarikan = query("SELECT p.tglTarik, u.namaUser, p.jumlahTarik, u.saldo FROM p
                     </div>
                     <i class="fas fa-info-circle info-icon"></i>
                 </div>
-                <p class="stat-title">Total Saldo Kas</p>
+                <p class="stat-title">Total Saldo Penjualan Pengepul</p>
                 <h2 class="stat-value">Rp<?php echo number_format($totalSaldoKas,0,',','.'); ?></h2>
             </div>
             

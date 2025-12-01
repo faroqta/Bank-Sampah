@@ -940,6 +940,29 @@ if ($resultPenarikanAll) {
                 padding: 20px;
             }
         }
+        /* Autocomplete dropdown (custom) */
+        .autocomplete-list {
+            position: absolute;
+            background: white;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+            z-index: 2000;
+            max-height: 240px;
+            overflow-y: auto;
+            width: 100%;
+            border-radius: 6px;
+        }
+
+        .autocomplete-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .autocomplete-item:hover, .autocomplete-item.active {
+            background: #f1f3f5;
+        }
     </style>
 </head>
 <body>
@@ -975,7 +998,7 @@ if ($resultPenarikanAll) {
             <li class="menu-item">
                 <a href="pengguna.php" class="menu-link">
                     <i class="fas fa-users"></i>
-                    <span>Pengguna</span>
+                    <span>Nasabah</span>
                 </a>
             </li>
             <li class="menu-item">
@@ -1034,7 +1057,10 @@ if ($resultPenarikanAll) {
                     </div>
                     <h3 class="section-title">Transaksi Setoran Nasabah</h3>
                 </div>
-                <a href="#" class="view-all-link" id="btnViewAllSetoran" onclick="event.preventDefault(); openViewAllModal('setoran');">Lihat Semua →</a>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <a href="export_transaksi.php?jenis=setoran" class="btn btn-sm btn-success" style="padding:6px 10px; font-weight:600; text-decoration:none; color:white;">Export Excel</a>
+                    <a href="#" class="view-all-link" id="btnViewAllSetoran" onclick="event.preventDefault(); openViewAllModal('setoran');">Lihat Semua →</a>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="custom-table">
@@ -1072,7 +1098,10 @@ if ($resultPenarikanAll) {
                     </div>
                     <h3 class="section-title">Transaksi Penarikan Nasabah</h3>
                 </div>
-                <a href="#" class="view-all-link" id="btnViewAllPenarikan" onclick="event.preventDefault(); openViewAllModal('penarikan');">Lihat Semua →</a>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <a href="export_transaksi.php?jenis=penarikan" class="btn btn-sm btn-success" style="padding:6px 10px; font-weight:600; text-decoration:none; color:white;">Export Excel</a>
+                    <a href="#" class="view-all-link" id="btnViewAllPenarikan" onclick="event.preventDefault(); openViewAllModal('penarikan');">Lihat Semua →</a>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="custom-table">
@@ -1114,7 +1143,10 @@ if ($resultPenarikanAll) {
                     </div>
                     <h3 class="section-title">Transaksi Pengepul</h3>
                 </div>
-                <a href="#" class="view-all-link" id="btnViewAllPengepul" onclick="event.preventDefault(); openViewAllModal('pengepul');">Lihat Semua →</a>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <a href="export_transaksi.php?jenis=pengepul" class="btn btn-sm btn-success" style="padding:6px 10px; font-weight:600; text-decoration:none; color:white;">Export Excel</a>
+                    <a href="#" class="view-all-link" id="btnViewAllPengepul" onclick="event.preventDefault(); openViewAllModal('pengepul');">Lihat Semua →</a>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="custom-table">
@@ -1295,12 +1327,12 @@ if ($resultPenarikanAll) {
                 <div id="formTransaksiMasuk" style="display:none;">
                     <div class="form-group mb-2" id="formNamaNasabah">
                         <label class="form-label">Nama Nasabah</label>
-                        <select name="idUser" class="form-select" id="idUserSelect" required>
-                            <option value="">Pilih Nasabah</option>
-                            <?php foreach($users as $u): ?>
-                            <option value="<?= $u['idUser'] ?>"><?= htmlspecialchars($u['namaUser']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <!-- Searchable input backed by datalist + hidden id field -->
+                        <div style="position:relative;">
+                            <input type="text" id="idUserInput" class="form-control" placeholder="Cari atau pilih nasabah" autocomplete="off" required>
+                            <input type="hidden" name="idUser" id="idUserHidden">
+                            <div class="autocomplete-list" id="idUserDropdown" style="display:none;"></div>
+                        </div>
                     </div>
                     <div id="multiItemForm">
                         <div class="row g-2 align-items-end" id="formSampahRow">
@@ -1308,15 +1340,20 @@ if ($resultPenarikanAll) {
                                 <label class="form-label">Jenis Sampah</label>
                                 <select class="form-select" id="inputJenisSampah" disabled>
                                     <option value="">Pilih Jenis</option>
-                                    <option value="Organik">Organik</option>
-                                    <option value="Anorganik">Anorganik</option>
+                                    <option value="Kertas">Kertas</option>
+                                    <option value="Plastik">Plastik</option>
+                                    <option value="Logam">Logam</option>
+                                    <option value="Jelantah">Jelantah</option>
+                                    <option value="Lainnya">Sampah Lainnya</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Nama Sampah</label>
-                                <select class="form-select" id="inputNamaSampah" disabled>
-                                    <option value="">Pilih Nama Sampah</option>
-                                </select>
+                                <!-- Searchable input for nama sampah backed by datalist -->
+                                <div style="position:relative;">
+                                    <input type="text" id="inputNamaSampahInput" class="form-control" placeholder="Cari atau pilih nama sampah" disabled autocomplete="off">
+                                    <div class="autocomplete-list" id="namaSampahDropdown" style="display:none;"></div>
+                                </div>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Jumlah (Kg)</label>
@@ -1365,15 +1402,14 @@ if ($resultPenarikanAll) {
                 <div id="formTransaksiKeluar" style="display:none;">
                     <!-- Penarikan Nasabah -->
                     <div id="formPenarikanNasabah" style="display:none;">
-                        <div class="form-group mb-2">
-                            <label class="form-label">Nama Nasabah</label>
-                            <select name="idUserPenarikan" class="form-select" id="idUserPenarikan">
-                                <option value="">Pilih Nasabah</option>
-                                <?php foreach($users as $u): ?>
-                                <option value="<?= $u['idUser'] ?>"><?= htmlspecialchars($u['namaUser']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                            <div class="form-group mb-2">
+                                <label class="form-label">Nama Nasabah</label>
+                                <div style="position:relative;">
+                                    <input type="text" id="idUserPenarikanInput" class="form-control" placeholder="Cari atau pilih nasabah" autocomplete="off">
+                                    <input type="hidden" name="idUserPenarikan" id="idUserPenarikanHidden">
+                                    <div class="autocomplete-list" id="idUserPenarikanDropdown" style="display:none;"></div>
+                                </div>
+                            </div>
                         <div class="form-group mb-2">
                             <label class="form-label">Saldo Saat Ini</label>
                             <input type="text" id="saldoPenarikan" class="form-control" value="" readonly>
@@ -1415,7 +1451,9 @@ if ($resultPenarikanAll) {
         // Enable/disable multi-item setoran fields based on nasabah selection
         function setMultiItemEnabled(enabled) {
             document.getElementById('inputJenisSampah').disabled = !enabled;
-            document.getElementById('inputNamaSampah').disabled = !enabled;
+            // inputNamaSampah was converted to an input with datalist
+            var namaInput = document.getElementById('inputNamaSampahInput');
+            if (namaInput) namaInput.disabled = !enabled;
             document.getElementById('inputBerat').disabled = !enabled;
             document.getElementById('inputHarga').disabled = !enabled;
             document.getElementById('addItemBtn').disabled = !enabled;
@@ -1424,26 +1462,38 @@ if ($resultPenarikanAll) {
         // On page load, ensure disabled if no nasabah selected
         document.addEventListener('DOMContentLoaded', function() {
             setMultiItemEnabled(false);
-            if (document.getElementById('idUserSelect').value) {
+            // If hidden id has a value, enable
+            if (document.getElementById('idUserHidden') && document.getElementById('idUserHidden').value) {
                 setMultiItemEnabled(true);
             }
+
+            // Populate datalistUsers (already printed server-side but ensure JS users variable exists)
         });
 
-        document.getElementById('idUserSelect').addEventListener('change', function() {
-            // Reset items array and fields (already handled above)
-            setMultiItemEnabled(!!this.value);
-        });
-        // Reset multi-item setoran form when nasabah changes
-        document.getElementById('idUserSelect').addEventListener('change', function() {
-            // Reset items array
-            items = [];
-            renderItems();
-            // Reset input fields
-            document.getElementById('inputJenisSampah').value = '';
-            document.getElementById('inputNamaSampah').innerHTML = '<option value="">Pilih Nama Sampah</option>';
-            document.getElementById('inputBerat').value = '';
-            document.getElementById('inputHarga').value = '';
-        });
+        // Wire idUserInput (searchable datalist) to hidden id and enable fields
+        var idUserInput = document.getElementById('idUserInput');
+        if (idUserInput) {
+            idUserInput.addEventListener('input', function() {
+                var val = this.value;
+                var hidden = document.getElementById('idUserHidden');
+                // Try to find user by exact name match
+                var found = users.find(u => u.namaUser && u.namaUser.toLowerCase() === val.trim().toLowerCase());
+                if (found) {
+                    hidden.value = found.idUser;
+                    setMultiItemEnabled(true);
+                } else {
+                    hidden.value = '';
+                    setMultiItemEnabled(false);
+                }
+                // Reset items when nasabah changes
+                items = [];
+                renderItems();
+                document.getElementById('inputJenisSampah').value = '';
+                document.getElementById('inputNamaSampahInput').value = '';
+                document.getElementById('inputBerat').value = '';
+                document.getElementById('inputHarga').value = '';
+            });
+        }
         
 function openAddTransactionModal() {
     document.getElementById('modalOverlay').style.display = 'block';
@@ -1465,16 +1515,20 @@ function toggleFormTransaksi() {
     document.getElementById('formPenarikanNasabah').style.display = 'none';
     document.getElementById('formPengepul').style.display = 'none';
     // Hide/disable setoran fields by default
-    document.getElementById('idUserSelect').disabled = true;
-    document.getElementById('idUserSelect').style.display = 'none';
+    if (document.getElementById('idUserInput')) {
+        document.getElementById('idUserInput').disabled = true;
+        document.getElementById('idUserInput').style.display = 'none';
+    }
     document.querySelector('input[name="tglSetor"]').disabled = true;
     document.querySelector('input[name="tglSetor"]').style.display = 'none';
     if (jenis === 'setoran') {
         document.getElementById('formTransaksiMasuk').style.display = 'block';
         document.getElementById('formNamaNasabah').style.display = '';
         document.getElementById('formSampahRow').style.display = '';
-        document.getElementById('idUserSelect').disabled = false;
-        document.getElementById('idUserSelect').style.display = '';
+        if (document.getElementById('idUserInput')) {
+            document.getElementById('idUserInput').disabled = false;
+            document.getElementById('idUserInput').style.display = '';
+        }
         document.querySelector('input[name="tglSetor"]').disabled = false;
         document.querySelector('input[name="tglSetor"]').style.display = '';
     } else if (jenis === 'penarikan') {
@@ -1485,73 +1539,77 @@ function toggleFormTransaksi() {
         document.getElementById('formPengepul').style.display = 'block';
     }
 }
-
 // Update saldo nasabah di form penarikan saat nasabah dipilih
 document.addEventListener('DOMContentLoaded', function() {
-    var idUserPenarikan = document.getElementById('idUserPenarikan');
-    if (idUserPenarikan) {
-        idUserPenarikan.addEventListener('change', function() {
-            var idUser = this.value;
+    var penInput = document.getElementById('idUserPenarikanInput');
+    if (penInput) {
+        penInput.addEventListener('input', function() {
+            var val = this.value;
+            var hidden = document.getElementById('idUserPenarikanHidden');
             var saldoInput = document.getElementById('saldoPenarikan');
-            if (!idUser) {
-                saldoInput.value = '';
-                return;
-            }
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', 'get_user_data.php?idUser=' + encodeURIComponent(idUser), true);
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    try {
-                        var data = JSON.parse(xhr.responseText);
-                        saldoInput.value = data.saldo !== undefined ? 'Rp' + parseInt(data.saldo).toLocaleString() : '';
-                    } catch (e) {
+            var found = users.find(u => u.namaUser && u.namaUser.toLowerCase() === val.trim().toLowerCase());
+            if (found) {
+                hidden.value = found.idUser;
+                // Fetch saldo via AJAX
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'get_user_data.php?idUser=' + encodeURIComponent(found.idUser), true);
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            saldoInput.value = data.saldo !== undefined ? 'Rp' + parseInt(data.saldo).toLocaleString() : '';
+                        } catch (e) {
+                            saldoInput.value = '';
+                        }
+                    } else {
                         saldoInput.value = '';
                     }
-                } else {
-                    saldoInput.value = '';
-                }
-            };
-            xhr.send();
+                };
+                xhr.send();
+            } else {
+                hidden.value = '';
+                saldoInput.value = '';
+            }
         });
     }
 });
 
-// Data sampah dari PHP ke JS
+// Data sampah dan users dari PHP ke JS
 const sampahList = <?php echo json_encode($sampahList); ?>;
+const users = <?php echo json_encode($users); ?>;
 let items = [];
 
 function updateNamaSampahDropdown() {
     const jenis = document.getElementById('inputJenisSampah').value;
-    const namaSelect = document.getElementById('inputNamaSampah');
-    namaSelect.innerHTML = '<option value="">Pilih Nama Sampah</option>';
+    const datalist = document.getElementById('datalistNamaSampah');
+    datalist.innerHTML = '';
     sampahList.forEach(s => {
         if (s.jenisSampah === jenis) {
             const opt = document.createElement('option');
             opt.value = s.namaSampah;
-            opt.textContent = s.namaSampah;
-            opt.setAttribute('data-harga', s.harga);
-            namaSelect.appendChild(opt);
+            datalist.appendChild(opt);
         }
     });
-    // Reset harga input
+    // Reset harga and input
+    document.getElementById('inputNamaSampahInput').value = '';
     document.getElementById('inputHarga').value = '';
 }
 
 function updateHargaInput() {
     const jenis = document.getElementById('inputJenisSampah').value;
-    const nama = document.getElementById('inputNamaSampah').value;
+    const nama = document.getElementById('inputNamaSampahInput').value;
     const hargaInput = document.getElementById('inputHarga');
     // Cari harga dari sampahList
-    const found = sampahList.find(s => s.jenisSampah === jenis && s.namaSampah === nama);
+    const found = sampahList.find(s => s.jenisSampah === jenis && s.namaSampah && s.namaSampah.toLowerCase() === (nama || '').trim().toLowerCase());
     hargaInput.value = found ? found.harga : '';
 }
 
 document.getElementById('inputJenisSampah').addEventListener('change', updateNamaSampahDropdown);
-document.getElementById('inputNamaSampah').addEventListener('change', updateHargaInput);
+document.getElementById('inputNamaSampahInput').addEventListener('input', updateHargaInput);
 
 function addItem() {
     const jenis = document.getElementById('inputJenisSampah').value;
-    const nama = document.getElementById('inputNamaSampah').value;
+    const nama = document.getElementById('inputNamaSampahInput').value;
     const berat = parseFloat(document.getElementById('inputBerat').value);
     const harga = parseFloat(document.getElementById('inputHarga').value);
     if (!jenis || !nama || isNaN(berat) || isNaN(harga) || berat <= 0 || harga <= 0) {
@@ -1561,7 +1619,7 @@ function addItem() {
     items.push({ jenis, nama, berat, harga, subtotal: berat * harga });
     renderItems();
     // Reset input
-    document.getElementById('inputNamaSampah').innerHTML = '<option value="">Pilih Nama Sampah</option>';
+    document.getElementById('inputNamaSampahInput').value = '';
     document.getElementById('inputBerat').value = '';
     document.getElementById('inputHarga').value = '';
 }
@@ -1593,6 +1651,95 @@ function renderItems() {
     table.style.display = items.length ? '' : 'none';
     document.getElementById('items_json').value = JSON.stringify(items);
 }
+
+// --- Custom autocomplete helpers ---
+function renderDropdown(dropdownEl, items, onSelect) {
+    dropdownEl.innerHTML = '';
+    if (!items || items.length === 0) {
+        dropdownEl.style.display = 'none';
+        return;
+    }
+    items.forEach(it => {
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item';
+        div.textContent = it.label;
+        div.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            onSelect(it);
+        });
+        dropdownEl.appendChild(div);
+    });
+    dropdownEl.style.display = 'block';
+}
+
+function setupAutocomplete(inputId, dropdownId, provider, onSelect) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    if (!input || !dropdown) return;
+
+    input.addEventListener('focus', function() {
+        const items = provider('');
+        renderDropdown(dropdown, items, onSelect);
+    });
+
+    input.addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        const items = provider(q);
+        renderDropdown(dropdown, items, onSelect);
+    });
+
+    input.addEventListener('blur', function() {
+        // delay hide so click can register
+        setTimeout(() => { dropdown.style.display = 'none'; }, 150);
+    });
+}
+
+// Provider for users (nasabah)
+function usersProvider(query) {
+    const all = users.map(u => ({ label: u.namaUser, id: u.idUser }));
+    if (!query) return all;
+    return all.filter(x => x.label && x.label.toLowerCase().includes(query));
+}
+
+// Provider for sampah names depending on selected jenis
+function sampahProvider(query) {
+    const jenis = (document.getElementById('inputJenisSampah').value || '').trim();
+    if (!jenis) return [];
+    const all = sampahList.filter(s => s.jenisSampah === jenis).map(s => ({ label: s.namaSampah, harga: s.harga }));
+    if (!query) return all;
+    return all.filter(x => x.label && x.label.toLowerCase().includes(query));
+}
+
+// Initialize autocompletes
+document.addEventListener('DOMContentLoaded', function() {
+    // Nasabah for setoran
+    setupAutocomplete('idUserInput', 'idUserDropdown', usersProvider, function(item) {
+        document.getElementById('idUserInput').value = item.label;
+        document.getElementById('idUserHidden').value = item.id;
+        setMultiItemEnabled(true);
+        // reset items
+        items = []; renderItems();
+    });
+
+    // Nasabah for penarikan
+    setupAutocomplete('idUserPenarikanInput', 'idUserPenarikanDropdown', usersProvider, function(item) {
+        document.getElementById('idUserPenarikanInput').value = item.label;
+        document.getElementById('idUserPenarikanHidden').value = item.id;
+        // fetch saldo
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'get_user_data.php?idUser=' + encodeURIComponent(item.id), true);
+        xhr.onload = function() { if (xhr.status === 200) { try { var data = JSON.parse(xhr.responseText); document.getElementById('saldoPenarikan').value = data.saldo !== undefined ? 'Rp' + parseInt(data.saldo).toLocaleString() : ''; } catch(e){ document.getElementById('saldoPenarikan').value = ''; } } };
+        xhr.send();
+    });
+
+    // Sampah names
+    setupAutocomplete('inputNamaSampahInput', 'namaSampahDropdown', sampahProvider, function(item) {
+        document.getElementById('inputNamaSampahInput').value = item.label;
+        document.getElementById('inputHarga').value = item.harga || '';
+        // focus jumlah input
+        var beratEl = document.getElementById('inputBerat'); if (beratEl) beratEl.focus();
+    });
+});
 </script>
 </body>
 </html>
